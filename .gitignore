@@ -1,0 +1,17 @@
+# Secretos: .mcp.json contiene N8N_API_KEY — NO versionar
+.mcp.json
+.env
+.env.*
+!.env.example
+
+# Config local de Claude Code
+.claude/settings.local.json
+
+# Node / npx
+node_modules/
+npm-debug.log*
+dist/
+
+# SO / editor
+.DS_Store
+*.swp

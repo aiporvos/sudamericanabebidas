@@ -1,0 +1,94 @@
+{
+  "name": "Calidad de Lata — 5) Reporte y planilla",
+  "nodes": [
+    {
+      "id": "sched",
+      "name": "Cada día 07:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0],
+      "parameters": { "rule": { "interval": [{ "field": "cronExpression", "expression": "0 7 * * *" }] } }
+    },
+    {
+      "id": "pg-kpis",
+      "name": "KPIs del día",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [220, 0],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "parameters": {
+        "resource": "database",
+        "operation": "executeQuery",
+        "query": "SELECT COUNT(*) AS evidencias, COUNT(r.evidence_id) AS procesadas, COUNT(*) FILTER (WHERE r.resultado = 'OK') AS ok, COUNT(*) FILTER (WHERE r.resultado = 'No OK') AS no_ok, COUNT(*) FILTER (WHERE r.revision_manual) AS revisiones, COUNT(*) FILTER (WHERE e.estado = 'duplicada') AS duplicadas, COUNT(*) FILTER (WHERE r.coherencia = false) AS incoherencias, COALESCE(SUM(r.tokens), 0) AS tokens, ROUND((COALESCE(SUM(r.tokens), 0) * 0.000005)::numeric, 4) AS costo_usd FROM evidencias e LEFT JOIN resultados r USING (evidence_id) WHERE e.capturado_en > now() - interval '24 hours';",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-detalle",
+      "name": "Detalle para planilla",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [440, 0],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "alwaysOutputData": true,
+      "parameters": {
+        "resource": "database",
+        "operation": "executeQuery",
+        "query": "SELECT evidence_id, linea, equipo, capturado_en, tipo_foto, resultado, confianza, revision_manual, calidad_impresion, coherencia, motivo, textos::text AS textos, defectos::text AS defectos, hora_pantalla, tokens, revisado_por, estado_ingesta, imagen_ref FROM v_evidencias_completas WHERE capturado_en > now() - interval '24 hours' ORDER BY capturado_en;",
+        "options": {}
+      }
+    },
+    {
+      "id": "csv",
+      "name": "Armar planilla CSV",
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [660, 0],
+      "parameters": { "operation": "csv", "binaryPropertyName": "data", "options": { "fileName": "=planilla-calidad-{{ $now.format('yyyy-MM-dd') }}.csv" } }
+    },
+    {
+      "id": "tg-doc",
+      "name": "Enviar planilla",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [880, 0],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "parameters": { "resource": "message", "operation": "sendDocument", "chatId": "-1003908341093", "binaryData": true, "binaryPropertyName": "data", "additionalFields": {} }
+    },
+    {
+      "id": "tg-resumen",
+      "name": "Resumen KPIs",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1100, 0],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "-1003908341093",
+        "text": "=📊 <b>REPORTE CALIDAD DE LATA — últimas 24 h</b>\n\n🧾 <b>Evidencias:</b> {{ $('KPIs del día').first().json.evidencias }} (procesadas: {{ $('KPIs del día').first().json.procesadas }})\n✅ <b>OK:</b> {{ $('KPIs del día').first().json.ok }}\n🚨 <b>No OK:</b> {{ $('KPIs del día').first().json.no_ok }}\n🔍 <b>Revisiones manuales:</b> {{ $('KPIs del día').first().json.revisiones }}\n♻️ <b>Duplicadas:</b> {{ $('KPIs del día').first().json.duplicadas }}\n⚖️ <b>Incoherencias:</b> {{ $('KPIs del día').first().json.incoherencias }}\n\n🎫 <b>Tokens IA:</b> {{ $('KPIs del día').first().json.tokens }} · 💵 <b>Costo est.:</b> USD {{ $('KPIs del día').first().json.costo_usd }}\n📎 Planilla CSV adjunta arriba · 🕒 {{ $now.format('dd/MM HH:mm') }}",
+        "additionalFields": { "parse_mode": "HTML" }
+      }
+    },
+    {
+      "id": "sticky-5",
+      "name": "Nota-reporte",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-40, -220],
+      "parameters": { "content": "### 5) Reporte y planilla (minuta: automatizar planillas + indicadores)\nCada día 07:00: KPIs de las últimas 24 h + planilla CSV con el detalle (desde v_evidencias_completas) enviados al grupo de Telegram. Requiere correr db/vistas-bi.sql. El horario se cambia en el Schedule Trigger.", "color": 4, "height": 180, "width": 560 }
+    }
+  ],
+  "connections": {
+    "Cada día 07:00": { "main": [[{ "node": "KPIs del día", "type": "main", "index": 0 }]] },
+    "KPIs del día": { "main": [[{ "node": "Detalle para planilla", "type": "main", "index": 0 }]] },
+    "Detalle para planilla": { "main": [[{ "node": "Armar planilla CSV", "type": "main", "index": 0 }]] },
+    "Armar planilla CSV": { "main": [[{ "node": "Enviar planilla", "type": "main", "index": 0 }]] },
+    "Enviar planilla": { "main": [[{ "node": "Resumen KPIs", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1", "errorWorkflow": "I59vNrbU4KKGkHXF" }
+}

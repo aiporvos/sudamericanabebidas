@@ -1,0 +1,193 @@
+{
+  "name": "Calidad de Lata — 1) Ingesta (Telegram → Cola)",
+  "nodes": [
+    {
+      "id": "tg-trg",
+      "name": "Recibir foto (Telegram)",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0],
+      "parameters": { "updates": ["message"], "additionalFields": { "download": true } }
+    },
+    {
+      "id": "code-norm",
+      "name": "Normalizar evidencia",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 0],
+      "parameters": {
+        "jsCode": "const item = $input.first();\nconst m = item.json.message ?? item.json;\nconst chatId = m.chat?.id;\nconst chatTitle = m.chat?.title || '';\nconst messageId = m.message_id;\nconst fromId = m.from?.id;\nconst cap = m.caption || '';\nconst hasPhoto = Array.isArray(m.photo) && m.photo.length > 0;\nconst capturadoEn = new Date((m.date || 0) * 1000).toISOString();\nconst proceso = 'calidad-lata';\nconst evidenceId = proceso + ':' + chatId + ':' + messageId;\nconst imagenRef = proceso + '/' + chatId + '/' + messageId + '.jpg';\nreturn [{ json: { evidence_id: evidenceId, proceso, linea_fallback: chatTitle || 'desconocida', equipo: '', capturado_en: capturadoEn, imagen_ref: imagenRef, origen: { chat_id: chatId, chat_title: chatTitle, from_id: fromId, message_id: messageId }, caption: cap, has_photo: hasPhoto }, binary: item.binary }];"
+      }
+    },
+    {
+      "id": "if-foto",
+      "name": "¿Es foto?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [440, 0],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose", "version": 2 },
+          "combinator": "and",
+          "conditions": [{ "id": "c1", "leftValue": "={{ $json.has_photo }}", "rightValue": true, "operator": { "type": "boolean", "operation": "equals" } }]
+        }
+      }
+    },
+    {
+      "id": "crypto-hash",
+      "name": "Hash imagen",
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 2,
+      "position": [660, -80],
+      "parameters": { "action": "hash", "type": "SHA256", "binaryData": true, "binaryPropertyName": "data", "dataPropertyName": "imagen_hash", "encoding": "hex" }
+    },
+    {
+      "id": "s3-up",
+      "name": "Guardar imagen original",
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "position": [880, -80],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "parameters": { "resource": "file", "operation": "upload", "bucketName": "calidad-lata", "fileName": "={{ $('Normalizar evidencia').first().json.imagen_ref }}", "binaryData": true, "binaryPropertyName": "data", "additionalFields": {} }
+    },
+    {
+      "id": "pg-linea",
+      "name": "Buscar línea",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [1100, -80],
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "maxTries": 2,
+      "parameters": {
+        "resource": "database",
+        "operation": "executeQuery",
+        "query": "=SELECT linea, equipo, proceso FROM lineas_grupos WHERE chat_id = '{{ $('Normalizar evidencia').first().json.origen.chat_id }}' LIMIT 1;",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-dup",
+      "name": "¿Duplicada en otro grupo?",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [1320, -80],
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "maxTries": 2,
+      "parameters": {
+        "resource": "database",
+        "operation": "executeQuery",
+        "query": "=SELECT evidence_id AS dup_evidence_id FROM evidencias WHERE imagen_hash = '{{ $('Hash imagen').first().json.imagen_hash }}' AND capturado_en > now() - (interval '1 hour' * COALESCE((SELECT valor::int FROM config WHERE clave='dedup_ventana_horas'), 24)) LIMIT 1;",
+        "options": {}
+      }
+    },
+    {
+      "id": "code-prep-reg",
+      "name": "Preparar registro",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1540, -80],
+      "parameters": {
+        "jsCode": "const n = $('Normalizar evidencia').first().json;\nconst hash = $('Hash imagen').first().json.imagen_hash || null;\nconst lineaRows = $('Buscar línea').all().map(i => i.json).filter(j => j && j.linea);\nconst linea = lineaRows.length ? lineaRows[0].linea : n.linea_fallback;\nconst equipo = lineaRows.length ? (lineaRows[0].equipo || '') : '';\nconst proceso = lineaRows.length ? (lineaRows[0].proceso || n.proceso) : n.proceso;\nconst dupRows = $input.all().map(i => i.json).filter(j => j && j.dup_evidence_id);\nconst estado = dupRows.length ? 'duplicada' : 'recibido';\nconst duplicada_de = dupRows.length ? dupRows[0].dup_evidence_id : null;\nreturn [{ json: { ...n, linea, equipo, proceso, imagen_hash: hash, estado, duplicada_de } }];"
+      }
+    },
+    {
+      "id": "pg-ins",
+      "name": "Registrar evidencia",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [1760, -80],
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "resource": "database",
+        "operation": "insert",
+        "schema": { "__rl": true, "mode": "list", "value": "public", "cachedResultName": "public" },
+        "table": { "__rl": true, "mode": "list", "value": "evidencias", "cachedResultName": "evidencias" },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "evidence_id": "={{ $('Preparar registro').first().json.evidence_id }}",
+            "proceso": "={{ $('Preparar registro').first().json.proceso }}",
+            "linea": "={{ $('Preparar registro').first().json.linea }}",
+            "equipo": "={{ $('Preparar registro').first().json.equipo }}",
+            "capturado_en": "={{ $('Preparar registro').first().json.capturado_en }}",
+            "imagen_ref": "={{ $('Preparar registro').first().json.imagen_ref }}",
+            "origen": "={{ JSON.stringify($('Preparar registro').first().json.origen) }}",
+            "estado": "={{ $('Preparar registro').first().json.estado }}",
+            "imagen_hash": "={{ $('Preparar registro').first().json.imagen_hash }}"
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "if-encolar",
+      "name": "¿Encolar?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [1980, -80],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose", "version": 2 },
+          "combinator": "and",
+          "conditions": [{ "id": "q1", "leftValue": "={{ $('Preparar registro').first().json.estado }}", "rightValue": "recibido", "operator": { "type": "string", "operation": "equals" } }]
+        }
+      }
+    },
+    {
+      "id": "rmq-send",
+      "name": "Publicar a cola",
+      "type": "n8n-nodes-base.rabbitmq",
+      "typeVersion": 1.1,
+      "position": [2200, -160],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "parameters": {
+        "operation": "sendMessage",
+        "mode": "queue",
+        "queue": "calidad.lata.procesar",
+        "sendInputData": false,
+        "message": "={{ JSON.stringify({ evidence_id: $('Preparar registro').first().json.evidence_id, proceso: $('Preparar registro').first().json.proceso, linea: $('Preparar registro').first().json.linea, equipo: $('Preparar registro').first().json.equipo, capturado_en: $('Preparar registro').first().json.capturado_en, imagen_ref: $('Preparar registro').first().json.imagen_ref, origen: $('Preparar registro').first().json.origen }) }}",
+        "options": { "durable": true }
+      }
+    },
+    {
+      "id": "redis-metric",
+      "name": "Contador recibidas (métrica)",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [2420, -160],
+      "onError": "continueRegularOutput",
+      "parameters": { "operation": "incr", "key": "={{ 'metrics:recibidas:' + $('Preparar registro').first().json.linea }}", "expire": false }
+    },
+    { "id": "noop-dup-grupos", "name": "Duplicada entre grupos", "type": "n8n-nodes-base.noOp", "typeVersion": 1, "position": [2200, 60], "parameters": {} },
+    { "id": "noop-nofoto", "name": "Descartar (sin foto)", "type": "n8n-nodes-base.noOp", "typeVersion": 1, "position": [660, 240], "parameters": {} },
+    { "id": "noop-dup", "name": "Duplicado (ignorar)", "type": "n8n-nodes-base.noOp", "typeVersion": 1, "position": [1980, 120], "parameters": {} },
+    {
+      "id": "sticky-1",
+      "name": "Nota-ingesta",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-40, -260],
+      "parameters": { "content": "### 1) Ingesta v3\nTelegram → normaliza (ids por chat_id) → hash SHA-256 de la imagen → guarda original en MinIO → busca la LÍNEA en la tabla lineas_grupos (config-driven; fallback = título del grupo) → detecta si la MISMA foto ya llegó por otro grupo (ventana config dedup_ventana_horas) → registra evidencia (con hash y estado) → si estado='recibido' publica a RabbitMQ + métrica Redis; si 'duplicada' NO se encola (minuta: eliminar información duplicada).\n\nDedup por mensaje: PK evidence_id (salida de error del INSERT → ignorar).", "color": 4, "height": 240, "width": 640 }
+    }
+  ],
+  "connections": {
+    "Recibir foto (Telegram)": { "main": [[{ "node": "Normalizar evidencia", "type": "main", "index": 0 }]] },
+    "Normalizar evidencia": { "main": [[{ "node": "¿Es foto?", "type": "main", "index": 0 }]] },
+    "¿Es foto?": { "main": [[{ "node": "Hash imagen", "type": "main", "index": 0 }], [{ "node": "Descartar (sin foto)", "type": "main", "index": 0 }]] },
+    "Hash imagen": { "main": [[{ "node": "Guardar imagen original", "type": "main", "index": 0 }]] },
+    "Guardar imagen original": { "main": [[{ "node": "Buscar línea", "type": "main", "index": 0 }]] },
+    "Buscar línea": { "main": [[{ "node": "¿Duplicada en otro grupo?", "type": "main", "index": 0 }]] },
+    "¿Duplicada en otro grupo?": { "main": [[{ "node": "Preparar registro", "type": "main", "index": 0 }]] },
+    "Preparar registro": { "main": [[{ "node": "Registrar evidencia", "type": "main", "index": 0 }]] },
+    "Registrar evidencia": { "main": [[{ "node": "¿Encolar?", "type": "main", "index": 0 }], [{ "node": "Duplicado (ignorar)", "type": "main", "index": 0 }]] },
+    "¿Encolar?": { "main": [[{ "node": "Publicar a cola", "type": "main", "index": 0 }], [{ "node": "Duplicada entre grupos", "type": "main", "index": 0 }]] },
+    "Publicar a cola": { "main": [[{ "node": "Contador recibidas (métrica)", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1", "errorWorkflow": "I59vNrbU4KKGkHXF" }
+}

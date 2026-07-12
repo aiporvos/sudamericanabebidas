@@ -1,0 +1,47 @@
+{
+  "name": "Calidad de Lata — 3) Manejo de Errores",
+  "nodes": [
+    {
+      "id": "err-trg",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [0, 0],
+      "parameters": {}
+    },
+    {
+      "id": "ops-alert",
+      "name": "Avisar a operaciones",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [260, 0],
+      "retryOnFail": true,
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "REEMPLAZAR_OPS_CHAT_ID",
+        "text": "=🚨 Error en *{{ $json.workflow.name }}*\nNodo: {{ $json.execution.lastNodeExecuted }}\nError: {{ $json.execution.error.message }}\nHora: {{ $now.toISO() }}",
+        "additionalFields": { "parse_mode": "Markdown" }
+      }
+    },
+    {
+      "id": "note1",
+      "name": "Nota-errores",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-40, -160],
+      "parameters": {
+        "content": "### Manejo de errores\nCaptura fallos de Ingesta y Procesamiento (que lo referencian como *Error Workflow* en Settings) y avisa a operaciones con nodo + mensaje + hora.\n\n**Pendiente:** reemplazar `REEMPLAZAR_OPS_CHAT_ID` y conectar credencial de Telegram.",
+        "color": 3,
+        "height": 260,
+        "width": 460
+      }
+    }
+  ],
+  "connections": {
+    "Error Trigger": {
+      "main": [[{ "node": "Avisar a operaciones", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" }
+}

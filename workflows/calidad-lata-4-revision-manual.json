@@ -1,0 +1,86 @@
+{
+  "name": "Calidad de Lata — 4) Bandeja de revisión manual",
+  "nodes": [
+    {
+      "id": "form-trg",
+      "name": "Bandeja de revisión (form)",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [0, 0],
+      "parameters": {
+        "formTitle": "Revisión de Calidad de Lata",
+        "formDescription": "Revisá la evidencia derivada por baja confianza y registrá la decisión. El Evidence ID viene en la alerta.",
+        "formFields": {
+          "values": [
+            { "fieldLabel": "Evidence ID", "fieldType": "text", "requiredField": true },
+            { "fieldLabel": "Resultado", "fieldType": "dropdown", "fieldOptions": { "values": [{ "option": "OK" }, { "option": "No OK" }, { "option": "Rechazado" }] }, "requiredField": true },
+            { "fieldLabel": "Revisor", "fieldType": "text", "requiredField": true },
+            { "fieldLabel": "Comentario", "fieldType": "textarea", "requiredField": false }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-rev",
+      "name": "Aplicar revisión",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [260, 0],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "alwaysOutputData": true,
+      "parameters": {
+        "resource": "database",
+        "operation": "executeQuery",
+        "query": "=UPDATE resultados SET estado = CASE WHEN '{{ $json['Resultado'] }}' = 'Rechazado' THEN 'rechazado' ELSE 'revisado' END, resultado = NULLIF(CASE WHEN '{{ $json['Resultado'] }}' = 'Rechazado' THEN '' ELSE '{{ $json['Resultado'] }}' END, ''), revision_manual = false, revisado_por = '{{ ($json['Revisor'] || '').replace(/'/g, \"''\") }}', revisado_en = now(), comentario = NULLIF('{{ ($json['Comentario'] || '').replace(/'/g, \"''\") }}', '') WHERE evidence_id = '{{ ($json['Evidence ID'] || '').trim().replace(/'/g, \"''\") }}' RETURNING evidence_id;",
+        "options": {}
+      }
+    },
+    {
+      "id": "if-existe",
+      "name": "¿Existe la evidencia?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [520, 0],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose", "version": 2 },
+          "combinator": "and",
+          "conditions": [{ "id": "v1", "leftValue": "={{ $json.evidence_id || '' }}", "rightValue": "", "operator": { "type": "string", "operation": "notEmpty", "singleValue": true } }]
+        }
+      }
+    },
+    { "id": "noop-ok", "name": "Revisión aplicada", "type": "n8n-nodes-base.noOp", "typeVersion": 1, "position": [760, -80], "parameters": {} },
+    {
+      "id": "tg-noexiste",
+      "name": "Avisar ID inexistente",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [760, 120],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "-1003908341093",
+        "text": "=⚠️ <b>Revisión manual rechazada</b>: el evidence_id no existe en la base.\n🗂 <code>{{ $('Bandeja de revisión (form)').first().json['Evidence ID'] }}</code>\n👤 {{ $('Bandeja de revisión (form)').first().json['Revisor'] || '-' }}\nVerificá el ID en la alerta original y volvé a cargar el formulario.",
+        "additionalFields": { "parse_mode": "HTML" }
+      }
+    },
+    {
+      "id": "sticky-4",
+      "name": "Nota-revision",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-40, -200],
+      "parameters": { "content": "### 4) Bandeja de revisión manual (v2 con validación)\nFormulario web: el operador ingresa el Evidence ID (viene en la alerta), elige OK/No OK/Rechazado y firma. UPDATE ... RETURNING valida que la evidencia exista: si no existe, avisa por Telegram en vez de fallar en silencio. Cierra el criterio 7.", "color": 6, "height": 200, "width": 520 }
+    }
+  ],
+  "connections": {
+    "Bandeja de revisión (form)": { "main": [[{ "node": "Aplicar revisión", "type": "main", "index": 0 }]] },
+    "Aplicar revisión": { "main": [[{ "node": "¿Existe la evidencia?", "type": "main", "index": 0 }]] },
+    "¿Existe la evidencia?": { "main": [[{ "node": "Revisión aplicada", "type": "main", "index": 0 }], [{ "node": "Avisar ID inexistente", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1", "errorWorkflow": "I59vNrbU4KKGkHXF" }
+}

@@ -1,0 +1,383 @@
+{
+  "name": "Calidad de Lata — 2) Procesamiento IA (Cola → Resultado)",
+  "nodes": [
+    {
+      "id": "rmq-trg",
+      "name": "Tomar tarea (RabbitMQ)",
+      "type": "n8n-nodes-base.rabbitmqTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "queue": "calidad.lata.procesar",
+        "options": {}
+      }
+    },
+    {
+      "id": "code-read",
+      "name": "Leer tarea",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const j = $input.first().json;\nlet body = j.content !== undefined ? j.content : j;\nif (typeof body === 'string') { try { body = JSON.parse(body); } catch (e) {} }\nreturn [{ json: body }];"
+      }
+    },
+    {
+      "id": "s3-dl",
+      "name": "Descargar imagen",
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "position": [
+        440,
+        0
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "parameters": {
+        "resource": "file",
+        "operation": "download",
+        "bucketName": "calidad-lata",
+        "fileKey": "={{ $('Leer tarea').item.json.imagen_ref }}"
+      }
+    },
+    {
+      "id": "code-prep",
+      "name": "Preparar visión",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const buf = await this.helpers.getBinaryDataBuffer(0, 'data');\nconst b64 = buf.toString('base64');\nconst ev = $('Leer tarea').item.json;\nconst prompt = 'Sos control de calidad de una embotelladora (latas). Analiza la foto y devolve SOLO un JSON valido con estas claves:\\n- tipo_foto: \"tapa\" | \"fondo_impresion\" | \"pantalla_contador\" | \"frente\" | \"otro\" (tapa de lata, impresion del fondo de la lata, pantalla/tablero de la maquina con contadores, frente de la lata, u otra cosa)\\n- contadores: array de numeros leidos (solo si es pantalla_contador; sino [])\\n- hora_pantalla: hora y/o fecha visible EN la pantalla fotografiada, como string (solo pantalla_contador; sino null)\\n- textos: array de strings con TODO texto impreso legible (ej lote \"L:117 13:55\", vencimiento \"V:24/10/26\")\\n- etiquetas: array de etiquetas/marcas visibles\\n- calidad_impresion: \"buena\" | \"mala\" | null (solo fondo_impresion: evalua nitidez, legibilidad y completitud de la impresion AUNQUE el dato sea correcto)\\n- defectos: array con cualquiera de: impresion, centrado, inclinacion, deformacion, etiqueta, contraetiqueta\\n- resultado: \"OK\" | \"No OK\"\\n- confianza: numero 0..1\\nFormatos tipicos impresos en el fondo de lata: \\\"L:<lote> <hh:mm>\\\" con \\\"V:<dd/mm/aa>\\\", o \\\"LOTE:<codigo>\\\" con \\\"VTO <dd/mm/aa>\\\" — transcribi EXACTAMENTE lo impreso, sin corregirlo ni completarlo. Si la impresion esta tenue, desgastada, incompleta o dudosa de leer, reduci la confianza por debajo de 0.85 y considera calidad_impresion=\\\"mala\\\". Sin texto fuera del JSON.';\nconst body = { model: 'gpt-4o', max_tokens: 1024, response_format: { type: 'json_object' }, messages: [{ role: 'user', content: [{ type: 'text', text: prompt }, { type: 'image_url', image_url: { url: 'data:image/jpeg;base64,' + b64 } }] }] };\nreturn [{ json: { ...ev, visionBody: body } }];"
+      }
+    },
+    {
+      "id": "http-vision",
+      "name": "Visión IA (OpenAI)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        880,
+        0
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "alwaysOutputData": true,
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": false,
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.visionBody) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "code-parse",
+      "name": "Parsear resultado",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const resp = $input.first().json;\nconst ev = $('Leer tarea').item.json;\nlet raw = '';\ntry { raw = resp.choices[0].message.content; } catch (e) { raw = ''; }\nlet parsed = {};\ntry { const mt = raw.match(/\\{[\\s\\S]*\\}/); parsed = JSON.parse(mt ? mt[0] : raw); } catch (e) { parsed = { _parse_error: true }; }\nconst tokens = (resp.usage && resp.usage.total_tokens) || 0;\nlet umbral = 0.85;\ntry { const cfg = $('Leer config').all().map(i => i.json); const u = cfg.find(x => x && x.clave === 'umbral_confianza'); if (u && !isNaN(parseFloat(u.valor))) umbral = parseFloat(u.valor); } catch (e) {}\nconst confianza = Number(parsed.confianza ?? 0);\nconst revision_manual = !(confianza >= umbral);\nconst resultado = revision_manual ? null : (parsed.resultado ?? null);\nconst calidad_impresion = parsed.calidad_impresion ?? null;\nconst requiere_atencion = revision_manual || resultado === 'No OK' || calidad_impresion === 'mala';\nconst motivo = calidad_impresion === 'mala' ? 'calidad de impresion mala' : null;\nconst estado = revision_manual ? 'revision_manual' : 'procesado';\nreturn [{ json: { evidence_id: ev.evidence_id, proceso: ev.proceso, linea: ev.linea, equipo: ev.equipo, capturado_en: ev.capturado_en, imagen_ref: ev.imagen_ref, tipo_foto: parsed.tipo_foto ?? 'otro', contadores: parsed.contadores ?? [], textos: parsed.textos ?? [], etiquetas: parsed.etiquetas ?? [], hora_pantalla: parsed.hora_pantalla ?? null, calidad_impresion, defectos: parsed.defectos ?? [], resultado, confianza, revision_manual, requiere_atencion, motivo, estado, modelo: (resp.model || 'gpt-4o'), tokens, evaluado_en: new Date().toISOString() } }];"
+      }
+    },
+    {
+      "id": "pg-lookup",
+      "name": "Buscar contador reciente",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1100,
+        192
+      ],
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "maxTries": 2,
+      "parameters": {
+        "resource": "database",
+        "operation": "executeQuery",
+        "query": "=SELECT r.evidence_id AS cont_evidence_id, r.hora_pantalla AS cont_hora_pantalla, r.textos AS cont_textos, r.evaluado_en AS cont_evaluado_en FROM resultados r JOIN evidencias e ON e.evidence_id = r.evidence_id WHERE r.tipo_foto = 'pantalla_contador' AND e.linea = '{{ $('Parsear resultado').first().json.linea }}' AND e.capturado_en >= now() - (interval '1 minute' * COALESCE((SELECT valor::int FROM config WHERE clave='ventana_comparacion_min'), 90)) ORDER BY e.capturado_en DESC LIMIT 1;",
+        "options": {}
+      }
+    },
+    {
+      "id": "code-coherencia",
+      "name": "Evaluar coherencia",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        192
+      ],
+      "parameters": {
+        "jsCode": "const r = $('Parsear resultado').first().json;\nlet coherencia = null;\nlet motivo = r.motivo || null;\nif (r.tipo_foto === 'fondo_impresion') {\n  const rows = $input.all().map(i => i.json).filter(j => j && j.cont_evidence_id);\n  if (rows.length) {\n    const reHora = /([01]?\\d|2[0-3]):[0-5]\\d/g;\n    const lataAll = (r.textos || []).join(' ').toUpperCase();\n    let contTextos = rows[0].cont_textos || [];\n    if (typeof contTextos === 'string') { try { contTextos = JSON.parse(contTextos); } catch (e) { contTextos = [contTextos]; } }\n    const contAll = (Array.isArray(contTextos) ? contTextos : [String(contTextos)]).join(' ').toUpperCase();\n    const fallas = [];\n    let checks = 0;\n    // 1) LOTE: formato corto \"L:117\" o largo \"LOTE:10010-5A\" vs pantalla \"LOTE...: xxx\"\n    const mLoteLargo = lataAll.match(/LOTE\\s*[:\\.]?\\s*([0-9A-Z][0-9A-Z-]{2,})/);\n    const mLoteCorto = lataAll.match(/L\\s*[:\\.]\\s*([0-9]{2,6})/);\n    const lataLote = (mLoteLargo || mLoteCorto || [])[1] || null;\n    const contLote = (contAll.match(/LOTE[^:]{0,25}:\\s*([0-9A-Z][0-9A-Z-]*)/) || [])[1] || null;\n    if (lataLote && contLote) {\n      checks++;\n      const a = lataLote.replace(/^0+/, '');\n      const b = contLote.replace(/^0+/, '');\n      if (a !== b && !b.split('-').includes(a) && !a.split('-').includes(b)) fallas.push('lote impreso ' + lataLote + ' distinto del lote en pantalla ' + contLote);\n    }\n    // 2) VTO: \"V:24/10/26\" o \"VTO 29/03/27\" vs pantalla \"VTO/VENC...: dd/mm/aa\"\n    const norm = s => s.replace(/(\\d{1,2})\\/(\\d{1,2})\\/(\\d{2,4})/, (m, d, mo, y) => ('' + d).padStart(2, '0') + '/' + ('' + mo).padStart(2, '0') + '/' + ('' + y).slice(-2));\n    const lataVto = (lataAll.match(/V(?:TO)?\\.?\\s*[:\\.]?\\s*(\\d{1,2}\\/\\d{1,2}\\/\\d{2,4})/) || [])[1] || null;\n    const contVto = (contAll.match(/(?:VTO|VENC)[^:]{0,25}:\\s*(\\d{1,2}\\/\\d{1,2}\\/\\d{2,4})/) || [])[1] || null;\n    if (lataVto && contVto) {\n      checks++;\n      if (norm(lataVto) !== norm(contVto)) fallas.push('vencimiento impreso ' + lataVto + ' distinto del de pantalla ' + contVto);\n    }\n    // 3) HORA impresa vs hora en pantalla (tolerancia 90 min)\n    const horasLata = lataAll.match(reHora) || [];\n    const horasPant = ((rows[0].cont_hora_pantalla || '').toString().match(reHora)) || [];\n    if (horasLata.length && horasPant.length) {\n      checks++;\n      const toMin = s => { const p = s.split(':').map(Number); return p[0] * 60 + p[1]; };\n      let diff = Infinity;\n      for (const hl of horasLata) { for (const hp of horasPant) { let d = Math.abs(toMin(hl) - toMin(hp)); d = Math.min(d, 1440 - d); if (d < diff) diff = d; } }\n      if (diff > 90) fallas.push('hora impresa (' + horasLata.join(',') + ') lejos de la pantalla (' + horasPant.join(',') + '), dif ' + diff + ' min');\n    }\n    if (checks > 0) {\n      coherencia = fallas.length === 0;\n      if (fallas.length) motivo = fallas.join(' | ');\n    }\n  }\n}\nconst requiere_atencion = r.requiere_atencion || coherencia === false;\nconst resultado = coherencia === false ? 'No OK' : r.resultado;\nreturn [{ json: { ...r, coherencia, motivo, resultado, requiere_atencion } }];"
+      }
+    },
+    {
+      "id": "pg-up",
+      "name": "Guardar resultado",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1320,
+        0
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "parameters": {
+        "resource": "database",
+        "operation": "executeQuery",
+        "query": "=INSERT INTO resultados (evidence_id, estado, resultado, confianza, revision_manual, contadores, defectos, textos, etiquetas, tipo_foto, hora_pantalla, calidad_impresion, coherencia, motivo, tokens, evaluado_en) VALUES ('{{ $json.evidence_id }}', '{{ $json.estado }}', NULLIF('{{ $json.resultado || '' }}', ''), {{ $json.confianza }}, {{ $json.revision_manual }}, '{{ JSON.stringify($json.contadores).replace(/'/g, \"''\") }}'::jsonb, '{{ JSON.stringify($json.defectos).replace(/'/g, \"''\") }}'::jsonb, '{{ JSON.stringify($json.textos).replace(/'/g, \"''\") }}'::jsonb, '{{ JSON.stringify($json.etiquetas).replace(/'/g, \"''\") }}'::jsonb, '{{ $json.tipo_foto }}', NULLIF('{{ ($json.hora_pantalla || '').replace(/'/g, \"''\") }}', ''), NULLIF('{{ $json.calidad_impresion || '' }}', ''), {{ $json.coherencia === null || $json.coherencia === undefined ? 'NULL' : $json.coherencia }}, NULLIF('{{ ($json.motivo || '').replace(/'/g, \"''\") }}', ''), {{ $json.tokens || 0 }}, '{{ $json.evaluado_en }}'::timestamptz) ON CONFLICT (evidence_id) DO UPDATE SET estado = EXCLUDED.estado, resultado = EXCLUDED.resultado, confianza = EXCLUDED.confianza, revision_manual = EXCLUDED.revision_manual, contadores = EXCLUDED.contadores, defectos = EXCLUDED.defectos, textos = EXCLUDED.textos, etiquetas = EXCLUDED.etiquetas, tipo_foto = EXCLUDED.tipo_foto, hora_pantalla = EXCLUDED.hora_pantalla, calidad_impresion = EXCLUDED.calidad_impresion, coherencia = EXCLUDED.coherencia, motivo = EXCLUDED.motivo, tokens = EXCLUDED.tokens, evaluado_en = EXCLUDED.evaluado_en;",
+        "options": {}
+      }
+    },
+    {
+      "id": "if-atn",
+      "name": "¿Requiere atención?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1540,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "a1",
+              "leftValue": "={{ $('Evaluar coherencia').first().json.requiere_atencion }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "tg-alert",
+      "name": "Alertar (desvío/revisión)",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1760,
+        -80
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "-1003908341093",
+        "text": "={{ $('Evaluar coherencia').first().json.estado === 'revision_manual' ? '🔍' : '🚨' }} <b>CALIDAD DE LATA — {{ $('Evaluar coherencia').first().json.estado === 'revision_manual' ? 'Revisión manual (baja confianza)' : 'Desvío No OK' }}</b>\n\n📷 <b>Tipo de foto:</b> {{ $('Evaluar coherencia').first().json.tipo_foto }}\n🏭 <b>Línea:</b> {{ $('Evaluar coherencia').first().json.linea }}\n⚙️ <b>Equipo:</b> {{ $('Evaluar coherencia').first().json.equipo || '-' }}\n\n📝 <b>Textos leídos:</b> <code>{{ ($('Evaluar coherencia').first().json.textos || []).join(' | ') || '-' }}</code>\n🕐 <b>Hora en pantalla:</b> {{ $('Evaluar coherencia').first().json.hora_pantalla || '-' }}\n🖨 <b>Calidad de impresión:</b> {{ $('Evaluar coherencia').first().json.calidad_impresion || '-' }}\n❗ <b>Defectos:</b> {{ ($('Evaluar coherencia').first().json.defectos || []).join(', ') || '-' }}\n📌 <b>Motivo:</b> {{ $('Evaluar coherencia').first().json.motivo || '-' }}\n🎯 <b>Confianza:</b> {{ Math.round(($('Evaluar coherencia').first().json.confianza || 0) * 100) }}%\n\n🗂 <b>Evidencia:</b> <code>{{ $('Evaluar coherencia').first().json.evidence_id }}</code>\n🖼 <b>Imagen:</b> <code>{{ $('Evaluar coherencia').first().json.imagen_ref }}</code>\n🕒 {{ $now.format('dd/MM HH:mm') }}",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      }
+    },
+    {
+      "id": "noop-ok",
+      "name": "Fin OK",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1760,
+        120
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "sticky-2",
+      "name": "Nota-proc",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -220
+      ],
+      "parameters": {
+        "content": "### 2) Procesamiento IA (v2 — minuta 25/06)\nConsume la cola → descarga de S3 → visión IA (OpenAI gpt-4o-mini, JSON estricto): clasifica el TIPO de foto (tapa / fondo_impresion / pantalla_contador / frente), extrae contadores + hora de pantalla, textos impresos y calidad de impresión → compara fondo_impresion contra la última pantalla_contador de la misma línea (±90 min) → guarda todo (incl. tokens) → alerta si es No OK, baja confianza, mala impresión o incoherencia.\n\n**Umbral (0.85), modelo y ventana (±90 min)** se ajustan en 'Parsear resultado' / 'Preparar visión' / 'Buscar contador reciente'.",
+        "color": 5,
+        "height": 240,
+        "width": 600
+      }
+    },
+    {
+      "id": "pg-config",
+      "name": "Leer config",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        330,
+        0
+      ],
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "maxTries": 2,
+      "parameters": {
+        "resource": "database",
+        "operation": "executeQuery",
+        "query": "SELECT clave, valor FROM config;",
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Tomar tarea (RabbitMQ)": {
+      "main": [
+        [
+          {
+            "node": "Leer tarea",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer tarea": {
+      "main": [
+        [
+          {
+            "node": "Leer config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Descargar imagen": {
+      "main": [
+        [
+          {
+            "node": "Preparar visión",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar visión": {
+      "main": [
+        [
+          {
+            "node": "Visión IA (OpenAI)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Visión IA (OpenAI)": {
+      "main": [
+        [
+          {
+            "node": "Parsear resultado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parsear resultado": {
+      "main": [
+        [
+          {
+            "node": "Buscar contador reciente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar contador reciente": {
+      "main": [
+        [
+          {
+            "node": "Evaluar coherencia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluar coherencia": {
+      "main": [
+        [
+          {
+            "node": "Guardar resultado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar resultado": {
+      "main": [
+        [
+          {
+            "node": "¿Requiere atención?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Requiere atención?": {
+      "main": [
+        [
+          {
+            "node": "Alertar (desvío/revisión)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fin OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer config": {
+      "main": [
+        [
+          {
+            "node": "Descargar imagen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "I59vNrbU4KKGkHXF"
+  }
+}
