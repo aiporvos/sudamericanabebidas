@@ -80,6 +80,17 @@ solución preparada para PET, Trazabilidad, Arranques de Línea, Cambios de Prod
     dedup) y el **mapeo grupo→línea** se ajustan **por datos** (tablas `config` y
     `lineas_grupos`), sin modificar ni re-desplegar flujos.
 
+> Criterios 22–23 derivados del checklist de cierre del MVP (13/07): consulta sin SQL con
+> imagen, y medición de latencia (`docs/plan-cierre-mvp.md`).
+
+22. Un analista **consulta el histórico sin SQL** desde el **dashboard web**
+    (https://dashboard.cluna.ar): filtros por fecha/línea/tipo/resultado/estado y búsqueda
+    libre, y el **detalle de cada evidencia muestra la imagen original** (desde MinIO),
+    motivo, coherencia, textos leídos y confianza.
+23. El sistema **mide la latencia** de punta a punta (foto en Telegram → resultado IA,
+    `evaluado_en − capturado_en`) y la expone por evidencia y como **p95** en el dashboard,
+    para aprobar el piloto con métricas objetivas.
+
 ## Alcance del MVP
 - Proceso **Calidad de Lata** únicamente.
 - Captura → interpretación IA → clasificación OK/No OK → fallback a revisión manual → persistencia → alerta.
@@ -97,6 +108,7 @@ Paradas No Planificadas, CO₂.
 ## Diagramas
 - Proceso (BPMN): `docs/diagramas/calidad-lata-bpmn.drawio`
 - Arquitectura: `docs/diagramas/calidad-lata-arquitectura.drawio`
+- API + dashboard (WF6): `docs/diagramas/calidad-lata-wf6-api-dashboard.drawio`
 
 ## Fuente de verdad
 - `docs/requisitos/minuta-2026-06-25.md` — minuta textual de la reunión con el cliente (25/06/2026).
@@ -104,7 +116,8 @@ Paradas No Planificadas, CO₂.
 ## Casos de uso
 - `docs/casos-de-uso/` — CU-01 enviar evidencia · CU-02 interpretar con IA · CU-03 validar
   coherencia impresión↔pantalla · CU-04 revisión manual · CU-05 alertar desvío · CU-06
-  consultar histórico (índice en `docs/casos-de-uso/README.md`).
+  consultar histórico en el dashboard · CU-07 reporte y planilla · CU-08 dedup entre grupos
+  (índice en `docs/casos-de-uso/README.md`).
 
 ## Decisiones relacionadas (ADR)
 - `adr/ADR-001-ingesta-telegram.md` — canal de ingesta.

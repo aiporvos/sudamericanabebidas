@@ -4,7 +4,7 @@ Solución completa del diagrama "Captura y Gestión de Evidencias de Calidad", i
 **3 workflows** en n8n con cola real. Ingesta por **Telegram** (resuelve el bloqueante de
 WhatsApp: no hay Groups API oficial de Meta).
 
-## Workflows (creados en la instancia, **inactivos**)
+## Workflows (en la instancia n8n.aiporvos.com)
 
 | # | Nombre | ID | Rol |
 |---|---|---|---|
@@ -13,9 +13,22 @@ WhatsApp: no hay Groups API oficial de Meta).
 | 3 | Calidad de Lata — 3) Manejo de Errores | `I59vNrbU4KKGkHXF` | Error Workflow de 1, 2 y 4; avisa a operaciones |
 | 4 | Calidad de Lata — 4) Bandeja de revisión manual | `Zcir83zzovfCLQrF` | Formulario web con validación de evidence_id |
 | 5 | Calidad de Lata — 5) Reporte y planilla | `5XQdZA48FGN4YHdN` | Diario 07:00: planilla CSV + resumen KPIs al grupo |
+| 6 | Calidad de Lata — 6) API Dashboard | `cfcBsJ1PcnseFZfu` | API del dashboard: datos JSON (con `latencia_segundos`) + foto original desde MinIO |
 
 JSON exportado: `calidad-lata-1-ingesta.json`, `calidad-lata-2-procesamiento.json`,
-`calidad-lata-3-errores.json`, `calidad-lata-4-revision-manual.json`.
+`calidad-lata-3-errores.json`, `calidad-lata-4-revision-manual.json`,
+`calidad-lata-5-reporte.json`, `calidad-lata-6-api-dashboard.json`.
+
+### WF6 — endpoints del dashboard (https://dashboard.cluna.ar)
+
+- `GET /webhook/dashboard-calidad` → evidencias de los últimos 90 días
+  (`evidencias LEFT JOIN resultados`), incluye `latencia_segundos` =
+  `evaluado_en − capturado_en` (criterio 23).
+- `GET /webhook/dashboard-calidad-imagen?id=<evidence_id>` → imagen original desde
+  MinIO (`imagen_ref` → S3 download → binario; 404 si no existe) — criterio 22.
+- CORS restringido a `https://dashboard.cluna.ar` (webhook `allowedOrigins` + header en el
+  Respond). La SPA vive en `apps/dashboard/` y se deploya desde el repo
+  `aiporvos/sudamericanabebidas-dashboard` (Dokploy, Dockerfile nginx).
 
 Etiqueta común sugerida: `sudamericana-bebidas` (agregar en la UI; el MCP no la pudo asignar).
 
@@ -172,6 +185,8 @@ Abrí cada nodo y seleccioná la credencial correcta:
 | 19. Dedup entre grupos (misma imagen) | WF1: Hash imagen → ¿Duplicada en otro grupo? → ¿Encolar? |
 | 20. Producción horaria / comparativos | vistas `v_produccion_horaria`, `v_comparativo_lineas` |
 | 21. Parámetros y mapeo por datos | tablas `config` (WF2 "Leer config") y `lineas_grupos` (WF1 "Buscar línea") |
+| 22. Consulta sin SQL con imagen | WF6: "GET dashboard-calidad" + "GET imagen-evidencia" → dashboard.cluna.ar (modal de detalle) |
+| 23. Latencia medida (p95) | WF6 "Evidencias 90 días" (`latencia_segundos`) → KPI "Latencia p95" del dashboard |
 
 ## Observabilidad y robustez
 

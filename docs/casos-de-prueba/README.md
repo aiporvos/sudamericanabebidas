@@ -90,17 +90,20 @@
 3. Abrir el **formulario WF4**, cargar el `evidence_id` de la alerta + resultado + nombre.
 4. **Esperado:** `resultados` queda `revisado` con **autor y timestamp** (criterio 7).
 
-## CP-10 — Consulta histórica ante reclamo
-**CU-06 · criterios 9, 16** · Sin imagen (usa lo generado por CP-01..09)
-1. Ejecutar:
+## CP-10 — Consulta histórica ante reclamo (dashboard, sin SQL)
+**CU-06 · criterios 9, 16, 22** · Sin imagen (usa lo generado por CP-01..09)
+1. Abrir **https://dashboard.cluna.ar** y buscar en **Búsqueda libre** un texto leído en la
+   demo (ej.: `L:117`) o filtrar por línea/fecha/resultado.
+2. **Esperado:** aparecen las evidencias coincidentes con lectura, veredicto, motivo y
+   confianza; los KPIs del período se recalculan según el filtro. Los `tokens` permiten
+   estimar el costo por foto.
+3. (Alternativa técnica) La misma consulta por SQL:
 ```sql
 SELECT e.linea, e.capturado_en, r.tipo_foto, r.textos, r.calidad_impresion,
        r.coherencia, r.motivo, r.resultado, r.tokens, e.imagen_ref
 FROM resultados r JOIN evidencias e USING (evidence_id)
 ORDER BY e.capturado_en DESC;
 ```
-2. **Esperado:** cada foto de la demo con su lectura, veredicto, motivo y referencia a la
-   imagen original (recuperable de MinIO). Los `tokens` permiten estimar el costo por foto.
 
 ## CP-11 — Reporte y planilla automática
 **CU-07 · criterios 18, 20** · Sin imagen (usa lo generado por los CP anteriores)
@@ -120,6 +123,18 @@ SELECT evidence_id, estado, duplicada_de IS NOT NULL AS es_dup FROM evidencias O
 > ⚠️ Consecuencia para la demo: las fotos del kit **no se pueden reutilizar** dentro de la
 > ventana (24 h default). Para repetir casos: usar otra foto o bajar `config.dedup_ventana_horas`.
 
+## CP-13 — Detalle de evidencia con foto y latencia (dashboard) 🖼️
+**CU-06 · criterios 1, 22, 23** · Sin imagen (usa lo generado por CP-01..09)
+1. En **https://dashboard.cluna.ar**, hacer **clic en una fila** de la tabla de evidencias.
+2. **Esperado:** se abre el detalle con la **foto original** (servida desde MinIO vía
+   `GET /webhook/dashboard-calidad-imagen?id=…`), resultado, confianza, estado,
+   línea/equipo, tipo de foto, **latencia IA** de esa evidencia, tokens, motivo,
+   coherencia y textos leídos.
+3. Verificar el KPI **"Latencia p95"** en la cabecera (Telegram → resultado IA; en el
+   piloto ronda los **8–10 s**).
+4. Con un `evidence_id` inexistente, el endpoint de imagen responde **404** y el modal
+   muestra el aviso "No se pudo cargar la imagen" (sin romper la página).
+
 ---
 
 ## Planilla de resultados (completar en la demo)
@@ -135,6 +150,7 @@ SELECT evidence_id, estado, duplicada_de IS NOT NULL AS es_dup FROM evidencias O
 | CP-07 | Cambio de lote | alerta motivo lote | | | |
 | CP-08 | Impresión borrosa | alerta calidad mala | | | |
 | CP-09 | Fotos reales + WF4 | OCR ok / revisión firmada | | | |
-| CP-10 | Consulta histórica | trazabilidad completa | | | |
+| CP-10 | Consulta histórica (dashboard) | búsqueda sin SQL | | | |
 | CP-11 | Reporte automático | CSV + resumen KPIs | | | |
 | CP-12 | Foto repetida | marcada duplicada, sin reproceso | | | |
+| CP-13 | Detalle con foto + latencia | imagen desde MinIO, KPI p95 | | | |

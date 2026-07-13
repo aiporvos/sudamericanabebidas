@@ -8,7 +8,8 @@
 - **Operario de planta** — saca y envía las fotos cada hora (por línea).
 - **Supervisor / operador de calidad** — recibe alertas y resuelve la revisión manual.
 - **Analista de calidad** — consulta histórico ante reclamos y arma indicadores.
-- **Sistema** — n8n (WF1–WF4) + OpenAI visión + MinIO/Postgres/RabbitMQ.
+- **Sistema** — n8n (WF1–WF6) + OpenAI visión + MinIO/Postgres/RabbitMQ + dashboard web
+  (https://dashboard.cluna.ar).
 
 ## Índice
 
@@ -19,12 +20,13 @@
 | [CU-03](CU-03-validar-coherencia.md) | Validar coherencia impresión ↔ pantalla | Sistema | ✅ WF2 |
 | [CU-04](CU-04-revision-manual.md) | Resolver revisión manual (fallback) | Supervisor | ✅ WF4 |
 | [CU-05](CU-05-alertar-desvio.md) | Alertar desvío en tiempo real | Sistema | ✅ WF2/WF3 |
-| [CU-06](CU-06-consultar-historico.md) | Consultar histórico ante reclamo | Analista | ⚠️ SQL (dashboard futuro) |
+| [CU-06](CU-06-consultar-historico.md) | Consultar histórico ante reclamo | Analista | ✅ WF6 + dashboard.cluna.ar |
 | [CU-07](CU-07-reporte-planilla.md) | Generar reporte y planilla automática | Sistema | ✅ WF5 + vistas BI |
 | [CU-08](CU-08-dedup-entre-grupos.md) | Detectar misma foto en varios grupos | Sistema | ✅ WF1 v3 (hash) |
 
 ## Diagramas relacionados
 - Proceso (BPMN): `../diagramas/calidad-lata-bpmn.drawio`
 - Arquitectura: `../diagramas/calidad-lata-arquitectura.drawio`
-- Flujos: `../diagramas/calidad-lata-wf1-ingesta.drawio`, `../diagramas/calidad-lata-wf2-procesamiento.drawio`
+- Flujos: `../diagramas/calidad-lata-wf1-ingesta.drawio`, `../diagramas/calidad-lata-wf2-procesamiento.drawio`,
+  `../diagramas/calidad-lata-wf5-reporte.drawio`, `../diagramas/calidad-lata-wf6-api-dashboard.drawio`
 - Exportados a imagen: `../diagramas/png/`

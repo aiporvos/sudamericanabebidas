@@ -4,11 +4,11 @@
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="title" value="Arquitectura Calidad de Lata — desplegada en Dokploy (VPS) — 11/07/2026" style="text;html=1;fontSize=16;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="40" y="20" width="900" height="30" as="geometry"/></mxCell>
+        <mxCell id="title" value="Arquitectura Calidad de Lata — desplegada en Dokploy (VPS) — 13/07/2026" style="text;html=1;fontSize=16;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="40" y="20" width="900" height="30" as="geometry"/></mxCell>
         <mxCell id="ops" value="👷 Operarios en planta&#10;(cada hora: fotos de tapa, fondo impreso,&#10;pantalla del contador, frente — por línea)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1"><mxGeometry x="40" y="120" width="260" height="90" as="geometry"/></mxCell>
         <mxCell id="tg" value="📱 Telegram&#10;grupo de calidad por línea&#10;(bot sudamericana_bot)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1"><mxGeometry x="360" y="120" width="210" height="90" as="geometry"/></mxCell>
         <mxCell id="dokploy" value="🖥 VPS con Dokploy (proyecto Sudamericana)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#666666;dashed=1;verticalAlign=top;fontStyle=1" vertex="1" parent="1"><mxGeometry x="330" y="260" width="1000" height="560" as="geometry"/></mxCell>
-        <mxCell id="n8n" value="⚙️ n8n (carpeta Claude/Sudamericana)&#10;WF1 Ingesta · WF2 Procesamiento IA&#10;WF3 Errores · WF4 Bandeja de revisión (form)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1"><mxGeometry x="380" y="310" width="300" height="100" as="geometry"/></mxCell>
+        <mxCell id="n8n" value="⚙️ n8n (carpeta Claude/Sudamericana)&#10;WF1 Ingesta · WF2 Procesamiento IA&#10;WF3 Errores · WF4 Bandeja de revisión (form)&#10;WF5 Reporte/planilla · WF6 API Dashboard" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1"><mxGeometry x="380" y="310" width="300" height="110" as="geometry"/></mxCell>
         <mxCell id="minio" value="🗄 MinIO (S3)&#10;bucket calidad-lata&#10;imágenes originales&#10;(evidencia auditable)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1"><mxGeometry x="400" y="480" width="150" height="110" as="geometry"/></mxCell>
         <mxCell id="pg" value="🐘 PostgreSQL&#10;evidencias + resultados&#10;(dedup por PK, textos,&#10;coherencia, tokens)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1"><mxGeometry x="610" y="480" width="170" height="110" as="geometry"/></mxCell>
         <mxCell id="rmq" value="🐰 RabbitMQ&#10;cola calidad.lata.procesar&#10;(desacopla ingesta de IA)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1"><mxGeometry x="840" y="480" width="200" height="80" as="geometry"/></mxCell>
@@ -17,7 +17,9 @@
         <mxCell id="er" value="🚨 WF3 Errores → aviso a operaciones" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;dashed=1;" vertex="1" parent="1"><mxGeometry x="380" y="650" width="300" height="50" as="geometry"/></mxCell>
         <mxCell id="openai" value="🧠 OpenAI API (gpt-4o)&#10;visión + OCR — externo&#10;(tokens medidos por foto)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1"><mxGeometry x="1420" y="310" width="220" height="90" as="geometry"/></mxCell>
         <mxCell id="alertas" value="⚠️ Alertas Telegram al grupo&#10;desvío No OK · baja confianza&#10;· mala impresión · incoherencia" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1"><mxGeometry x="1420" y="480" width="220" height="90" as="geometry"/></mxCell>
-        <mxCell id="fut" value="📊 Futuro: dashboard + BI + procesos PET, trazabilidad, CO₂… (config-driven, sin cambios estructurales)" style="text;html=1;fontSize=11;fontColor=#666666;" vertex="1" parent="1"><mxGeometry x="330" y="850" width="800" height="30" as="geometry"/></mxCell>
+        <mxCell id="dash" value="📊 Dashboard operativo (SPA React + nginx)&#10;https://dashboard.cluna.ar — KPIs, gráficos, filtros,&#10;detalle con foto y latencia p95&#10;(repo deploy: sudamericanabebidas-dashboard)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1"><mxGeometry x="1080" y="290" width="230" height="120" as="geometry"/></mxCell>
+        <mxCell id="analista" value="🔎 Analista de calidad&#10;(consulta histórico y reclamos&#10;sin SQL — CU-06)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1"><mxGeometry x="1420" y="120" width="220" height="80" as="geometry"/></mxCell>
+        <mxCell id="fut" value="📊 Futuro: BI corporativo + procesos PET, trazabilidad, CO₂… (config-driven, sin cambios estructurales)" style="text;html=1;fontSize=11;fontColor=#666666;" vertex="1" parent="1"><mxGeometry x="330" y="850" width="800" height="30" as="geometry"/></mxCell>
         <mxCell id="a1" style="endArrow=block;html=1;" edge="1" parent="1" source="ops" target="tg"><mxGeometry relative="1" as="geometry"/></mxCell>
         <mxCell id="a2" style="endArrow=block;html=1;" edge="1" parent="1" source="tg" target="n8n"><mxGeometry relative="1" as="geometry"/></mxCell>
         <mxCell id="a3" style="endArrow=block;html=1;" edge="1" parent="1" source="n8n" target="minio"><mxGeometry relative="1" as="geometry"/></mxCell>
@@ -27,6 +29,8 @@
         <mxCell id="a7" style="endArrow=block;html=1;" edge="1" parent="1" source="n8n" target="openai"><mxGeometry relative="1" as="geometry"/></mxCell>
         <mxCell id="a8" style="endArrow=block;html=1;" edge="1" parent="1" source="n8n" target="alertas"><mxGeometry relative="1" as="geometry"/></mxCell>
         <mxCell id="a9" style="endArrow=block;html=1;" edge="1" parent="1" source="wf4" target="pg"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="a10" value="HTTPS" style="endArrow=block;html=1;" edge="1" parent="1" source="analista" target="dash"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="a11" value="GET datos + imagen&#10;(WF6, CORS)" style="endArrow=block;html=1;" edge="1" parent="1" source="dash" target="n8n"><mxGeometry relative="1" as="geometry"/></mxCell>
       </root>
     </mxGraphModel>
   </diagram>

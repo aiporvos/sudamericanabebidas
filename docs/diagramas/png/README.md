@@ -17,5 +17,9 @@ informes y el cliente).
 | `../calidad-lata-wf1-ingesta.drawio` | `calidad-lata-wf1-ingesta.png` |
 | `../calidad-lata-wf2-procesamiento.drawio` | `calidad-lata-wf2-procesamiento.png` |
 | `../calidad-lata-wf5-reporte.drawio` | `calidad-lata-wf5-reporte.png` |
+| `../calidad-lata-wf6-api-dashboard.drawio` | `calidad-lata-wf6-api-dashboard.png` |
+
+> ⚠️ 13/07: `calidad-lata-arquitectura.drawio` cambió (se agregó el dashboard + WF6) —
+> re-exportar su PNG. El de WF6 es nuevo.
 
 > Si un `.drawio` cambia, re-exportar su PNG para que no queden desfasados.
