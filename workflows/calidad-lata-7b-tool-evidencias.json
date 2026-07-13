@@ -5,7 +5,7 @@
       "id": "ewt-1",
       "name": "Entrada de la tool",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
-      "typeVersion": 1.2,
+      "typeVersion": 1.1,
       "position": [0, 0],
       "parameters": {
         "inputSource": "workflowInputs",

@@ -45,7 +45,7 @@
       "id": "mem-buffer",
       "name": "Memoria de sesión",
       "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
-      "typeVersion": 1.4,
+      "typeVersion": 1.2,
       "position": [360, 220],
       "parameters": {
         "sessionIdType": "customKey",
@@ -106,9 +106,9 @@
       "typeVersion": 1,
       "position": [0, -320],
       "parameters": {
-        "content": "### 7) Chat Asistente IA — Lupa\nPOST https://n8n.aiporvos.com/webhook/dashboard-calidad-chat\nBody: { session_id, mensaje } → { respuesta }\nCORS restringido a https://dashboard.cluna.ar (igual que WF6).\n\nModelo: OpenRouter (openai/gpt-4o-mini) — no hay credencial nativa OpenAI en esta instancia, se reusa una credencial OpenRouter existente. Si '402 payment required': la cuenta se quedó sin créditos, cambiar a la otra credencial OpenRouter disponible o cargar saldo.\nMemoria: Simple Memory (n8n interno), sessionKey = session_id del dashboard, ventana 20 turnos.\nTool: sub-workflow 7b (v_evidencias_completas) — DEBE estar activo.\n\n⚠️ Gotchas de esta build (13/07): el bug del sanitizador del MCP revierte nodos no tocados al editar otro (ver memoria del proyecto) — re-verificar TODOS los nodos tras cualquier update. queryReplacement del sub-workflow debe ir en formato array, no comma-string (con params vacíos pierde parámetros).",
-        "height": 280,
-        "width": 700,
+        "content": "### 7) Chat Asistente IA — Lupa\nPOST https://n8n.aiporvos.com/webhook/dashboard-calidad-chat\nBody: { session_id, mensaje } → { respuesta }\nCORS restringido a https://dashboard.cluna.ar (igual que WF6).\n\nModelo: OpenRouter (openai/gpt-4o-mini) — no hay credencial nativa OpenAI en esta instancia, se reusa una credencial OpenRouter existente. Si '402 payment required': la cuenta se quedó sin créditos, cambiar a la otra credencial OpenRouter disponible o cargar saldo. NO usar 'openrouter/auto': probado y no es confiable para tool-calling (a veces no llama la tool y devuelve respuesta vacía).\nMemoria: Simple Memory (n8n interno), sessionKey = session_id del dashboard, ventana 20 turnos.\nTool: sub-workflow 7b (v_evidencias_completas) — DEBE estar activo.\n\n⚠️ Gotchas de esta build (13/07):\n1) El bug del sanitizador del MCP revierte nodos no tocados al editar otro — re-verificar TODOS los nodos tras cualquier update.\n2) queryReplacement del sub-workflow en formato array, no comma-string (con params vacíos pierde parámetros).\n3) typeVersion 1.4 de Simple Memory y 1.2 de Execute Workflow Trigger NO son soportadas por esta instancia (ícono roto '?' en el canvas) — al abrir/guardar en la UI BORRA los parámetros custom. Fijado a 1.2 y 1.1 respectivamente, que sí renderizan bien.",
+        "height": 320,
+        "width": 760,
         "color": 4
       }
     }
