@@ -42,6 +42,16 @@
       "parameters": { "action": "hash", "type": "SHA256", "binaryData": true, "binaryPropertyName": "data", "dataPropertyName": "imagen_hash", "encoding": "hex" }
     },
     {
+      "id": "code-reattach-bin",
+      "name": "Reasignar binario",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [770, -80],
+      "parameters": {
+        "jsCode": "const item = $input.first();\nreturn [{ json: item.json, binary: $('Normalizar evidencia').first().binary }];"
+      }
+    },
+    {
       "id": "s3-up",
       "name": "Guardar imagen original",
       "type": "n8n-nodes-base.s3",
@@ -173,14 +183,15 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [-40, -260],
-      "parameters": { "content": "### 1) Ingesta v3\nTelegram → normaliza (ids por chat_id) → hash SHA-256 de la imagen → guarda original en MinIO → busca la LÍNEA en la tabla lineas_grupos (config-driven; fallback = título del grupo) → detecta si la MISMA foto ya llegó por otro grupo (ventana config dedup_ventana_horas) → registra evidencia (con hash y estado) → si estado='recibido' publica a RabbitMQ + métrica Redis; si 'duplicada' NO se encola (minuta: eliminar información duplicada).\n\nDedup por mensaje: PK evidence_id (salida de error del INSERT → ignorar).", "color": 4, "height": 240, "width": 640 }
+      "parameters": { "content": "### 1) Ingesta v3\nTelegram → normaliza (ids por chat_id) → hash SHA-256 de la imagen → guarda original en MinIO → busca la LÍNEA en la tabla lineas_grupos (config-driven; fallback = título del grupo) → detecta si la MISMA foto ya llegó por otro grupo (ventana config dedup_ventana_horas) → registra evidencia (con hash y estado) → si estado='recibido' publica a RabbitMQ + métrica Redis; si 'duplicada' NO se encola (minuta: eliminar información duplicada).\n\nDedup por mensaje: PK evidence_id (salida de error del INSERT → ignorar).\n\n⚠️ 13/07: el nodo Crypto ('Hash imagen') NO propaga el binario en su salida (solo json) — se agregó 'Reasignar binario' (Code) para reinyectar la foto desde 'Normalizar evidencia' antes de subir a S3. Sin esto, TODA foto fallaba en 'Guardar imagen original' (outage 11/07 22:11 → 13/07 14:32).", "color": 4, "height": 300, "width": 640 }
     }
   ],
   "connections": {
     "Recibir foto (Telegram)": { "main": [[{ "node": "Normalizar evidencia", "type": "main", "index": 0 }]] },
     "Normalizar evidencia": { "main": [[{ "node": "¿Es foto?", "type": "main", "index": 0 }]] },
     "¿Es foto?": { "main": [[{ "node": "Hash imagen", "type": "main", "index": 0 }], [{ "node": "Descartar (sin foto)", "type": "main", "index": 0 }]] },
-    "Hash imagen": { "main": [[{ "node": "Guardar imagen original", "type": "main", "index": 0 }]] },
+    "Hash imagen": { "main": [[{ "node": "Reasignar binario", "type": "main", "index": 0 }]] },
+    "Reasignar binario": { "main": [[{ "node": "Guardar imagen original", "type": "main", "index": 0 }]] },
     "Guardar imagen original": { "main": [[{ "node": "Buscar línea", "type": "main", "index": 0 }]] },
     "Buscar línea": { "main": [[{ "node": "¿Duplicada en otro grupo?", "type": "main", "index": 0 }]] },
     "¿Duplicada en otro grupo?": { "main": [[{ "node": "Preparar registro", "type": "main", "index": 0 }]] },
