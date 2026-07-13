@@ -19,10 +19,7 @@ informes y el cliente).
 | `../calidad-lata-wf5-reporte.drawio` | `calidad-lata-wf5-reporte.png` |
 | `../calidad-lata-wf6-api-dashboard.drawio` | `calidad-lata-wf6-api-dashboard.png` |
 
-> ✅ 13/07: `calidad-lata-arquitectura.png` (con el dashboard + WF6) y
-> `calidad-lata-wf6-api-dashboard.png` ya están exportados y al día.
->
-> ⚠️ Pendientes de exportar (nunca se generaron): `calidad-lata-wf2-procesamiento.png`
-> y `calidad-lata-wf5-reporte.png`.
+> ✅ 13/07: los 6 diagramas tienen su PNG al día (arquitectura y wf6 nuevos;
+> wf2-procesamiento y wf5-reporte exportados por primera vez).
 
 > Si un `.drawio` cambia, re-exportar su PNG para que no queden desfasados.
