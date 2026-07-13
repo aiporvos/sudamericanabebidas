@@ -8,8 +8,8 @@
 - **Operario de planta** — saca y envía las fotos cada hora (por línea).
 - **Supervisor / operador de calidad** — recibe alertas y resuelve la revisión manual.
 - **Analista de calidad** — consulta histórico ante reclamos y arma indicadores.
-- **Sistema** — n8n (WF1–WF6) + OpenAI visión + MinIO/Postgres/RabbitMQ + dashboard web
-  (https://dashboard.cluna.ar).
+- **Sistema** — n8n (WF1–WF7b) + OpenAI visión + MinIO/Postgres/RabbitMQ + dashboard web
+  (https://dashboard.cluna.ar) + chat "Lupa" (AI Agent sobre OpenRouter).
 
 ## Índice
 
@@ -23,10 +23,12 @@
 | [CU-06](CU-06-consultar-historico.md) | Consultar histórico ante reclamo | Analista | ✅ WF6 + dashboard.cluna.ar |
 | [CU-07](CU-07-reporte-planilla.md) | Generar reporte y planilla automática | Sistema | ✅ WF5 + vistas BI |
 | [CU-08](CU-08-dedup-entre-grupos.md) | Detectar misma foto en varios grupos | Sistema | ✅ WF1 v3 (hash) |
+| [CU-09](CU-09-chat-asistente.md) | Consultar evidencias y métricas por chat | Analista | ✅ WF7 + WF7b (Lupa) |
 
 ## Diagramas relacionados
 - Proceso (BPMN): `../diagramas/calidad-lata-bpmn.drawio`
 - Arquitectura: `../diagramas/calidad-lata-arquitectura.drawio`
 - Flujos: `../diagramas/calidad-lata-wf1-ingesta.drawio`, `../diagramas/calidad-lata-wf2-procesamiento.drawio`,
-  `../diagramas/calidad-lata-wf5-reporte.drawio`, `../diagramas/calidad-lata-wf6-api-dashboard.drawio`
+  `../diagramas/calidad-lata-wf5-reporte.drawio`, `../diagramas/calidad-lata-wf6-api-dashboard.drawio`,
+  `../diagramas/calidad-lata-wf7-chat-asistente.drawio`
 - Exportados a imagen: `../diagramas/png/`

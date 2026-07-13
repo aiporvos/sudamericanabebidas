@@ -1,0 +1,43 @@
+<mxfile host="app.diagrams.net" type="device">
+  <diagram id="calidad-lata-wf7" name="WF7 — Chat Asistente IA (Lupa)">
+    <mxGraphModel dx="1500" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageWidth="1750" pageHeight="1050" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="WF7 — Chat Asistente IA &quot;Lupa&quot; (IpHaLdb29KIkMVrn) + WF7b Tool (1V5WzKjcmzsrJ9bO) · 13/07/2026" style="text;html=1;fontSize=16;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="40" y="20" width="1200" height="30" as="geometry"/></mxCell>
+
+        <mxCell id="user" value="🧑 Usuario del dashboard&#10;(analista, supervisor…)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1"><mxGeometry x="40" y="120" width="200" height="80" as="geometry"/></mxCell>
+        <mxCell id="widget" value="💬 ChatWidget (React)&#10;burbuja flotante en dashboard.cluna.ar&#10;session_id en localStorage" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1"><mxGeometry x="300" y="120" width="230" height="90" as="geometry"/></mxCell>
+
+        <mxCell id="wh" value="🌐 Webhook&#10;POST /webhook/dashboard-calidad-chat&#10;{ session_id, mensaje }" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1"><mxGeometry x="600" y="120" width="260" height="90" as="geometry"/></mxCell>
+
+        <mxCell id="agent" value="🧠 AI Agent — Lupa&#10;system prompt: dominio Calidad de Lata&#10;+ regla &quot;siempre consultar antes de responder&quot;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1"><mxGeometry x="920" y="100" width="290" height="110" as="geometry"/></mxCell>
+
+        <mxCell id="model" value="🤖 OpenRouter Chat Model&#10;openai/gpt-4o-mini&#10;maxTokens 700 · temp 0.3" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;" vertex="1" parent="1"><mxGeometry x="920" y="260" width="200" height="80" as="geometry"/></mxCell>
+        <mxCell id="memory" value="🗂 Simple Memory&#10;sessionKey = session_id&#10;ventana 20 turnos" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;" vertex="1" parent="1"><mxGeometry x="1150" y="260" width="200" height="80" as="geometry"/></mxCell>
+
+        <mxCell id="lane" value="WF7b — Tool &quot;Consultar evidencias de Calidad&quot; (sub-workflow, DEBE estar activo)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#666666;dashed=1;verticalAlign=top;fontStyle=1" vertex="1" parent="1"><mxGeometry x="920" y="420" width="700" height="260" as="geometry"/></mxCell>
+        <mxCell id="ewt" value="⚙️ Entrada de la tool&#10;modo · dias_atras · linea · resultado&#10;(par&#225;metros $fromAI)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1"><mxGeometry x="950" y="470" width="230" height="90" as="geometry"/></mxCell>
+        <mxCell id="ifmodo" value="¿modo =&#10;'resumen'?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1"><mxGeometry x="1220" y="475" width="120" height="80" as="geometry"/></mxCell>
+        <mxCell id="pgres" value="🐘 Resumen por línea&#10;GROUP BY linea: total,&#10;OK/No OK/revisión/incoherentes/&#10;confianza media/tokens" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1"><mxGeometry x="1400" y="440" width="200" height="100" as="geometry"/></mxCell>
+        <mxCell id="pgdet" value="🐘 Detalle de evidencias&#10;hasta 30 filas: evidence_id,&#10;resultado, motivo, coherencia…" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1"><mxGeometry x="1400" y="560" width="200" height="90" as="geometry"/></mxCell>
+
+        <mxCell id="resp" value="↩️ Responder chat&#10;{ respuesta: agent.output }&#10;CORS → dashboard.cluna.ar" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1"><mxGeometry x="600" y="280" width="260" height="90" as="geometry"/></mxCell>
+
+        <mxCell id="nota" value="⚠️ Root cause de un bug real de esta build: typeVersion &quot;latest&quot; del catálogo del MCP para Simple Memory (1.4) y Execute Workflow Trigger (1.2) NO son soportadas por esta instancia de n8n — ícono roto en el canvas y pérdida de parámetros al abrir/guardar en la UI. Fijadas a 1.2 y 1.1. queryReplacement de los nodos Postgres en formato array (no comma-string) para no perder parámetros vacíos. Modelo openrouter/auto evaluado y descartado: poco confiable para tool-calling." style="text;html=1;fontSize=11;fontColor=#666666;" vertex="1" parent="1"><mxGeometry x="40" y="760" width="1600" height="60" as="geometry"/></mxCell>
+
+        <mxCell id="e1" value="escribe" style="endArrow=block;html=1;" edge="1" parent="1" source="user" target="widget"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e2" value="POST" style="endArrow=block;html=1;" edge="1" parent="1" source="widget" target="wh"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e3" style="endArrow=block;html=1;" edge="1" parent="1" source="wh" target="agent"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e4" value="ai_languageModel" style="endArrow=block;html=1;dashed=1;" edge="1" parent="1" source="model" target="agent"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e5" value="ai_memory" style="endArrow=block;html=1;dashed=1;" edge="1" parent="1" source="memory" target="agent"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e6" value="ai_tool" style="endArrow=block;html=1;dashed=1;" edge="1" parent="1" source="ewt" target="agent"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e7" style="endArrow=block;html=1;" edge="1" parent="1" source="ewt" target="ifmodo"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e8" value="sí" style="endArrow=block;html=1;" edge="1" parent="1" source="ifmodo" target="pgres"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e9" value="no" style="endArrow=block;html=1;" edge="1" parent="1" source="ifmodo" target="pgdet"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e10" style="endArrow=block;html=1;" edge="1" parent="1" source="agent" target="resp"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e11" value="JSON" style="endArrow=block;html=1;" edge="1" parent="1" source="resp" target="widget"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

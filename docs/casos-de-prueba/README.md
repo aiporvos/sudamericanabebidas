@@ -135,6 +135,31 @@ SELECT evidence_id, estado, duplicada_de IS NOT NULL AS es_dup FROM evidencias O
 4. Con un `evidence_id` inexistente, el endpoint de imagen responde **404** y el modal
    muestra el aviso "No se pudo cargar la imagen" (sin romper la página).
 
+## CP-14 — Chat "Lupa": consulta agregada (modo resumen) 💬
+**CU-09 · criterio 24** · Sin imagen (usa lo generado por CP-01..09)
+1. En **https://dashboard.cluna.ar**, abrir la burbuja de chat (abajo a la derecha) y
+   preguntar: *"¿Cuántas evidencias hubo hoy?"*.
+2. **Esperado:** Lupa responde en **texto plano** (sin asteriscos ni markdown) con números
+   reales — total, OK, No OK, revisión manual, incoherentes, confianza media y tokens —
+   coincidentes con los KPIs del dashboard para ese mismo período.
+3. Verificar en n8n → **Executions** de WF7b ("Tool Consultar Evidencias") que hubo una
+   ejecución real asociada a la pregunta (confirma que Lupa consultó la base y no inventó
+   la cifra).
+
+## CP-15 — Chat "Lupa": detalle + memoria de sesión 💬
+**CU-09 · criterio 24** · Sin imagen (usa lo generado por CP-01..09)
+1. En la misma conversación de CP-14, preguntar: *"¿Cuál fue el motivo de las
+   incoherencias?"* (pregunta de seguimiento, sin repetir "de hoy").
+2. **Esperado:** Lupa entiende el contexto de la pregunta anterior (memoria de sesión por
+   `session_id`) y responde con el **motivo real** de cada incoherencia (lote/vencimiento/
+   hora impresos vs. pantalla), usando el modo `detalle` de la tool.
+3. Probar el botón **"Nueva sesión"**: debe limpiar la conversación y volver solo al
+   mensaje de bienvenida.
+4. Preguntar algo fuera de dominio (ej. "¿qué día es hoy en Japón?") — Lupa debe declinar
+   amablemente en vez de responder con conocimiento general.
+5. (Opcional, para probar el manejo de error) Desactivar WF7b momentáneamente y repetir
+   CP-14: Lupa debe reportar que no pudo consultar los datos, **nunca inventar cifras**.
+
 ---
 
 ## Planilla de resultados (completar en la demo)
@@ -154,3 +179,5 @@ SELECT evidence_id, estado, duplicada_de IS NOT NULL AS es_dup FROM evidencias O
 | CP-11 | Reporte automático | CSV + resumen KPIs | | | |
 | CP-12 | Foto repetida | marcada duplicada, sin reproceso | | | |
 | CP-13 | Detalle con foto + latencia | imagen desde MinIO, KPI p95 | | | |
+| CP-14 | Chat Lupa — resumen | datos reales, coincide con dashboard | | | |
+| CP-15 | Chat Lupa — detalle + memoria | motivo real, contexto de sesión | | | |

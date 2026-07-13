@@ -1,6 +1,6 @@
 # Plan de cierre del MVP — Calidad de Lata
 
-**Fecha:** 2026-07-13 · **Estado general:** técnica lista para piloto; faltan decisiones del cliente.
+**Fecha:** 2026-07-13 (actualizado) · **Estado general:** técnica lista para piloto; faltan decisiones del cliente.
 
 Matriz contra el checklist "Preguntas clave para cerrar el MVP". Cada punto tiene su estado,
 la evidencia verificable de lo cubierto y lo que falta con responsable.
@@ -20,10 +20,10 @@ la evidencia verificable de lo cubierto y lo que falta con responsable.
 ## 1. Unificar los criterios del MVP — 🟡
 
 **Cubierto (evidencia):**
-- HU consolidada con criterios de aceptación 1–21: `docs/requisitos/HU-calidad-lata.md`.
+- HU consolidada con criterios de aceptación 1–24: `docs/requisitos/HU-calidad-lata.md`.
 - Fuente de verdad: minuta del 25/06/2026 en `docs/requisitos/minuta-2026-06-25.md`.
-- Trazabilidad criterio → caso de uso (`docs/casos-de-uso/` CU-01..CU-08) → prueba
-  (`docs/casos-de-prueba/` CP-01..CP-12).
+- Trazabilidad criterio → caso de uso (`docs/casos-de-uso/` CU-01..CU-09) → prueba
+  (`docs/casos-de-prueba/` CP-01..CP-15).
 
 **Falta:**
 - [ ] Matriz única **incluido / diferido / descartado** firmada por el cliente. Los temas
@@ -103,14 +103,18 @@ la evidencia verificable de lo cubierto y lo que falta con responsable.
   (agregado 2026-07-13 vía endpoint `GET /webhook/dashboard-calidad-imagen`).
 - Criterio de cierre cumplido: *"un analista encuentra evidencia, motivo e imagen sin usar SQL"*.
 - La planilla convive: WF5 manda el CSV diario a las 07:00 por Telegram.
+- **Extra entregado (criterio 24, no pedido en la minuta):** chat conversacional **"Lupa"**
+  (WF7 + WF7b, AI Agent sobre OpenRouter) — responde preguntas en lenguaje natural con datos
+  reales de la base (no inventa cifras), con memoria de sesión para preguntas de
+  seguimiento. Ver `docs/casos-de-uso/CU-09-chat-asistente.md` y CP-14/CP-15.
 
 **Decisión pendiente (no bloquea):**
-- [ ] Cuándo se retira la planilla CSV en favor del dashboard. **Responsable: cliente.**
+- [ ] Cuándo se retira la planilla CSV en favor del dashboard/chat. **Responsable: cliente.**
 
 ## 8. Ejecutar pruebas y aceptar el piloto — 🟡
 
 **Cubierto (evidencia):**
-- Suite definida: CP-01..CP-12 con planilla de resultados (`docs/casos-de-prueba/README.md`).
+- Suite definida: CP-01..CP-15 con planilla de resultados (`docs/casos-de-prueba/README.md`).
 - Versiones auditables: workflows exportados en `workflows/*.json` (repo git), IDs de la
   instancia documentados; front de control = dashboard + bandeja WF4.
 - Aislamiento: cada ejecución queda en Executions de n8n con su ID.
@@ -129,11 +133,12 @@ la evidencia verificable de lo cubierto y lo que falta con responsable.
 | 1 | Imagen en el detalle del dashboard | Claudio (IA) | ✅ hecho 2026-07-13 |
 | 2 | Latencia medida + KPI p95 | Claudio (IA) | ✅ hecho 2026-07-13 |
 | 3 | DLQ RabbitMQ + prueba de retry | Claudio | ☐ |
-| 4 | Ejecutar suite CP-01..CP-12 y registrar | Claudio | ☐ |
+| 4 | Ejecutar suite CP-01..CP-15 y registrar | Claudio | ☐ |
 | 5 | Matriz incluido/diferido/descartado | Cliente + Claudio | ☐ |
 | 6 | Mapa grupos→línea + dato de producción | Cliente | ☐ |
 | 7 | Dataset etiquetado + umbrales de métricas | Cliente + Claudio | ☐ |
 | 8 | Acta final Go/Ajustar/No Go | Cliente | ☐ |
+| 9 | Chat "Lupa" (extra, criterio 24) | Claudio (IA) | ✅ hecho 2026-07-13 |
 
 > **Regla de cierre:** cada decisión necesita responsable, evidencia verificable y criterio de
 > aceptación cumplido. Las evidencias técnicas de este documento son verificables en el repo

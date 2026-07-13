@@ -91,6 +91,15 @@ solución preparada para PET, Trazabilidad, Arranques de Línea, Cambios de Prod
     `evaluado_en − capturado_en`) y la expone por evidencia y como **p95** en el dashboard,
     para aprobar el piloto con métricas objetivas.
 
+> Criterio 24: entregable adicional, no pedido explícitamente en la minuta pero derivado del
+> objetivo de "consulta rápida sin reprocesar" — un canal conversacional sobre el mismo dato.
+
+24. Un usuario puede **consultar evidencias y métricas en lenguaje natural** desde un
+    **chat integrado al dashboard** ("Lupa"): preguntas de conteos/comparaciones entre
+    líneas responden con **datos reales** (no inventados), preguntas sobre casos puntuales
+    devuelven el **motivo** registrado, y el chat **mantiene contexto** dentro de una misma
+    sesión (preguntas de seguimiento sin repetir el contexto).
+
 ## Alcance del MVP
 - Proceso **Calidad de Lata** únicamente.
 - Captura → interpretación IA → clasificación OK/No OK → fallback a revisión manual → persistencia → alerta.
@@ -109,6 +118,7 @@ Paradas No Planificadas, CO₂.
 - Proceso (BPMN): `docs/diagramas/calidad-lata-bpmn.drawio`
 - Arquitectura: `docs/diagramas/calidad-lata-arquitectura.drawio`
 - API + dashboard (WF6): `docs/diagramas/calidad-lata-wf6-api-dashboard.drawio`
+- Chat "Lupa" (WF7 + WF7b): `docs/diagramas/calidad-lata-wf7-chat-asistente.drawio`
 
 ## Fuente de verdad
 - `docs/requisitos/minuta-2026-06-25.md` — minuta textual de la reunión con el cliente (25/06/2026).
@@ -116,8 +126,8 @@ Paradas No Planificadas, CO₂.
 ## Casos de uso
 - `docs/casos-de-uso/` — CU-01 enviar evidencia · CU-02 interpretar con IA · CU-03 validar
   coherencia impresión↔pantalla · CU-04 revisión manual · CU-05 alertar desvío · CU-06
-  consultar histórico en el dashboard · CU-07 reporte y planilla · CU-08 dedup entre grupos
-  (índice en `docs/casos-de-uso/README.md`).
+  consultar histórico en el dashboard · CU-07 reporte y planilla · CU-08 dedup entre grupos ·
+  CU-09 consultar por chat con Lupa (índice en `docs/casos-de-uso/README.md`).
 
 ## Decisiones relacionadas (ADR)
 - `adr/ADR-001-ingesta-telegram.md` — canal de ingesta.
