@@ -1,0 +1,124 @@
+{
+  "name": "Calidad de Lata — 7) Chat Asistente IA",
+  "nodes": [
+    {
+      "id": "wh-chat",
+      "name": "GET chat-lupa",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "dashboard-calidad-chat",
+        "responseMode": "responseNode",
+        "options": { "allowedOrigins": "https://dashboard.cluna.ar" }
+      }
+    },
+    {
+      "id": "agent-lupa",
+      "name": "Lupa",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [320, 0],
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.body.mensaje }}",
+        "options": {
+          "systemMessage": "IMPORTANTE: nunca respondas con números, conteos o afirmaciones sobre evidencias sin haber llamado ANTES a la tool 'Consultar evidencias de Calidad' en este mismo turno. Si todavía no la llamaste para esta pregunta, llamala primero. Nunca asumas que no hay datos sin haber consultado.\n\nSos Lupa, la asistente de Calidad de Lata de Sudamericana Bebidas. Ayudás a operadores, supervisores y analistas a entender las evidencias fotográficas que el sistema de IA revisa en las líneas de producción (llenadora, etiquetadora, codificadora).\n\nContexto del dominio:\n- Cada evidencia es una foto (tapa, fondo de impresión, pantalla del contador, o frente de la lata) enviada por Telegram y analizada con visión IA (gpt-4o).\n- resultado puede ser OK, No OK, o sin clasificar (pendiente).\n- confianza menor a 0.85 deriva a revisión manual (estado_resultado = 'revision_manual').\n- coherencia compara el lote/vencimiento/hora IMPRESOS en la lata contra los mismos datos mostrados en la PANTALLA del tablero de la línea; coherencia=false significa que no coinciden (posible error de calibración o cambio de lote no reflejado).\n- tokens mide el consumo de IA por evidencia (para estimar costo).\n- las evidencias duplicadas ya están excluidas de las consultas.\n\nHoy es {{ $now.format('cccc dd/MM/yyyy') }} (zona horaria Argentina).\n\nPara responder preguntas sobre datos reales, usá SIEMPRE la tool 'Consultar evidencias de Calidad':\n- Preguntas de métricas, totales, comparaciones entre líneas, promedios → modo 'resumen'.\n- Preguntas sobre casos puntuales, defectos, o motivos de un desvío → modo 'detalle'.\n- Convertí expresiones de tiempo a días: 'hoy'→1, 'esta semana'→7, 'este mes'→30. Si no se especifica, usá 7.\n- Si el usuario no menciona una línea, dejá el parámetro linea vacío para traer todas.\n\nReglas de respuesta:\n- Respondé siempre en español, corto y directo, con los números concretos que devolvió la tool.\n- Nunca inventes cifras: si la tool no trajo datos, decilo explícitamente ('no hay evidencias en ese período').\n- El chat NO renderiza markdown: nunca uses asteriscos para negrita, ni numeración tipo '1.', ni guiones de lista, ni encabezados con #. Escribí texto plano, usando saltos de línea y ' — ' o ':' para separar ideas.\n- Si preguntan algo fuera de Calidad de Lata, respondé amablemente que solo podés ayudar con temas de Calidad de Lata."
+        }
+      }
+    },
+    {
+      "id": "lm-openrouter",
+      "name": "OpenRouter Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [200, 220],
+      "parameters": {
+        "model": "openai/gpt-4o-mini",
+        "options": { "maxTokens": 700, "temperature": 0.3 }
+      },
+      "credentials": { "openRouterApi": { "id": "Fq7TOyzisEe7kRTD", "name": "OpenRouter account" } }
+    },
+    {
+      "id": "mem-buffer",
+      "name": "Memoria de sesión",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [360, 220],
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.body.session_id }}",
+        "contextWindowLength": 20
+      }
+    },
+    {
+      "id": "tool-evidencias",
+      "name": "Consultar evidencias de Calidad",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [520, 220],
+      "parameters": {
+        "description": "Consultá evidencias y métricas de Calidad de Lata. Dos modos: 'resumen' devuelve totales agregados por línea (evidencias, OK, No OK, revisión manual, incoherencias, confianza media, tokens) en una ventana de días — usalo para preguntas de métricas o comparación entre líneas. 'detalle' devuelve hasta 30 evidencias individuales con motivo y resultado — usalo para buscar casos específicos o defectos. Parámetros: modo ('resumen'|'detalle'), dias_atras (número de días hacia atrás, ej. hoy=1, esta semana=7, este mes=30), linea (opcional, ej. 'linea-1'; vacío = todas), resultado (opcional, solo en modo detalle: 'OK'|'No OK'; vacío = todos).",
+        "source": "database",
+        "workflowId": { "__rl": true, "value": "1V5WzKjcmzsrJ9bO", "mode": "list", "cachedResultName": "Calidad de Lata — 7b) Tool Consultar Evidencias" },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "modo": "={{ $fromAI(\"modo\", \"'resumen' para métricas/totales/comparaciones, 'detalle' para casos puntuales\", \"string\") }}",
+            "dias_atras": "={{ $fromAI(\"dias_atras\", \"Días hacia atrás desde hoy a consultar, como texto numérico ej. '7'. hoy=1, esta semana=7, este mes=30\", \"string\") }}",
+            "linea": "={{ $fromAI(\"linea\", \"Filtrar por línea ej. linea-1, linea-2, linea-3. Vacío para todas\", \"string\") }}",
+            "resultado": "={{ $fromAI(\"resultado\", \"Filtrar por resultado OK o No OK, solo aplica en modo detalle. Vacío para todos\", \"string\") }}"
+          },
+          "schema": [
+            { "id": "modo", "displayName": "modo", "type": "string", "display": true },
+            { "id": "dias_atras", "displayName": "dias_atras", "type": "string", "display": true },
+            { "id": "linea", "displayName": "linea", "type": "string", "display": true },
+            { "id": "resultado", "displayName": "resultado", "type": "string", "display": true }
+          ]
+        }
+      }
+    },
+    {
+      "id": "resp-chat",
+      "name": "Responder chat",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [640, 0],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { respuesta: $json.output } }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              { "name": "Access-Control-Allow-Origin", "value": "https://dashboard.cluna.ar" },
+              { "name": "Cache-Control", "value": "no-store" }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "sticky-7",
+      "name": "Nota-chat",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [0, -320],
+      "parameters": {
+        "content": "### 7) Chat Asistente IA — Lupa\nPOST https://n8n.aiporvos.com/webhook/dashboard-calidad-chat\nBody: { session_id, mensaje } → { respuesta }\nCORS restringido a https://dashboard.cluna.ar (igual que WF6).\n\nModelo: OpenRouter (openai/gpt-4o-mini) — no hay credencial nativa OpenAI en esta instancia, se reusa una credencial OpenRouter existente. Si '402 payment required': la cuenta se quedó sin créditos, cambiar a la otra credencial OpenRouter disponible o cargar saldo.\nMemoria: Simple Memory (n8n interno), sessionKey = session_id del dashboard, ventana 20 turnos.\nTool: sub-workflow 7b (v_evidencias_completas) — DEBE estar activo.\n\n⚠️ Gotchas de esta build (13/07): el bug del sanitizador del MCP revierte nodos no tocados al editar otro (ver memoria del proyecto) — re-verificar TODOS los nodos tras cualquier update. queryReplacement del sub-workflow debe ir en formato array, no comma-string (con params vacíos pierde parámetros).",
+        "height": 280,
+        "width": 700,
+        "color": 4
+      }
+    }
+  ],
+  "connections": {
+    "GET chat-lupa": { "main": [[{ "node": "Lupa", "type": "main", "index": 0 }]] },
+    "Lupa": { "main": [[{ "node": "Responder chat", "type": "main", "index": 0 }]] },
+    "OpenRouter Chat Model": { "ai_languageModel": [[{ "node": "Lupa", "type": "ai_languageModel", "index": 0 }]] },
+    "Memoria de sesión": { "ai_memory": [[{ "node": "Lupa", "type": "ai_memory", "index": 0 }]] },
+    "Consultar evidencias de Calidad": { "ai_tool": [[{ "node": "Lupa", "type": "ai_tool", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1", "errorWorkflow": "I59vNrbU4KKGkHXF" }
+}

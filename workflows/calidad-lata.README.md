@@ -14,10 +14,33 @@ WhatsApp: no hay Groups API oficial de Meta).
 | 4 | Calidad de Lata — 4) Bandeja de revisión manual | `Zcir83zzovfCLQrF` | Formulario web con validación de evidence_id |
 | 5 | Calidad de Lata — 5) Reporte y planilla | `5XQdZA48FGN4YHdN` | Diario 07:00: planilla CSV + resumen KPIs al grupo |
 | 6 | Calidad de Lata — 6) API Dashboard | `cfcBsJ1PcnseFZfu` | API del dashboard: datos JSON (con `latencia_segundos`) + foto original desde MinIO |
+| 7 | Calidad de Lata — 7) Chat Asistente IA | `IpHaLdb29KIkMVrn` | Chat "Lupa": responde preguntas sobre evidencias/métricas con un AI Agent |
+| 7b | Calidad de Lata — 7b) Tool Consultar Evidencias | `1V5WzKjcmzsrJ9bO` | Sub-workflow-tool de WF7 (consulta Postgres, modo resumen/detalle) |
 
 JSON exportado: `calidad-lata-1-ingesta.json`, `calidad-lata-2-procesamiento.json`,
 `calidad-lata-3-errores.json`, `calidad-lata-4-revision-manual.json`,
-`calidad-lata-5-reporte.json`, `calidad-lata-6-api-dashboard.json`.
+`calidad-lata-5-reporte.json`, `calidad-lata-6-api-dashboard.json`,
+`calidad-lata-7-chat-asistente.json`, `calidad-lata-7b-tool-evidencias.json`.
+
+### WF7 — chat "Lupa" (https://dashboard.cluna.ar, burbuja flotante)
+
+- `POST /webhook/dashboard-calidad-chat` — body `{ session_id, mensaje }` → `{ respuesta }`.
+- **AI Agent** (modelo OpenRouter `openai/gpt-4o-mini`, no hay credencial nativa OpenAI en
+  esta instancia) + **Simple Memory** (sessionKey = `session_id` del dashboard, ventana 20
+  turnos) + **tool** `Consultar evidencias de Calidad` → sub-workflow **WF7b**, que
+  consulta `v_evidencias_completas` en modo `resumen` (totales agregados por línea) o
+  `detalle` (hasta 30 evidencias puntuales con motivo).
+- CORS restringido a `https://dashboard.cluna.ar`, igual que WF6.
+- ⚠️ **WF7b debe estar ACTIVO** (toggle ON): un sub-workflow-tool inactivo no se puede
+  invocar desde el AI Agent — falla en silencio (0 ejecuciones, el agente reporta "no hay
+  datos" o "problema técnico" sin haber consultado nada).
+- ⚠️ El `queryReplacement` de los nodos Postgres de WF7b usa **formato array**
+  (`={{ [$json.a, $json.b] }}`), no comma-string — con parámetros vacíos (línea/resultado
+  sin filtrar) el formato comma-string pierde el parámetro y Postgres tira
+  `no existe el parámetro $2`.
+- Si el chat responde "Payment required" o deja de andar: la cuenta de OpenRouter se quedó
+  sin créditos — cambiar la credencial del nodo "OpenRouter Chat Model" a otra cuenta
+  disponible, o cargar saldo en openrouter.ai/settings/credits.
 
 ### WF6 — endpoints del dashboard (https://dashboard.cluna.ar)
 

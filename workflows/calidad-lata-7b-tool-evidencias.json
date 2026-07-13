@@ -1,0 +1,88 @@
+{
+  "name": "Calidad de Lata — 7b) Tool Consultar Evidencias",
+  "nodes": [
+    {
+      "id": "ewt-1",
+      "name": "Entrada de la tool",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0],
+      "parameters": {
+        "inputSource": "workflowInputs",
+        "workflowInputs": {
+          "values": [
+            { "name": "modo", "type": "string" },
+            { "name": "dias_atras", "type": "string" },
+            { "name": "linea", "type": "string" },
+            { "name": "resultado", "type": "string" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "if-modo",
+      "name": "¿Modo resumen?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [240, 0],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 3 },
+          "conditions": [{ "id": "c1", "leftValue": "={{ $json.modo }}", "rightValue": "resumen", "operator": { "type": "string", "operation": "equals" } }],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-resumen",
+      "name": "Resumen por línea",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [480, -80],
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "maxTries": 2,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT linea, count(*) AS total, count(*) FILTER (WHERE resultado = 'OK') AS ok, count(*) FILTER (WHERE resultado = 'No OK') AS no_ok, count(*) FILTER (WHERE estado_resultado = 'revision_manual') AS revision_manual, count(*) FILTER (WHERE coherencia = false) AS incoherentes, round(avg(confianza)::numeric, 2) AS confianza_media, sum(tokens) AS tokens_totales FROM v_evidencias_completas WHERE capturado_en > now() - ($1 || ' days')::interval AND estado_ingesta <> 'duplicada' AND ($2 = '' OR linea = $2) GROUP BY linea ORDER BY linea;",
+        "options": { "queryReplacement": "={{ [$json.dias_atras, $json.linea] }}" }
+      },
+      "credentials": { "postgres": { "id": "sNxnP1WCjx6Xrzlf", "name": "Postgres-Sudamericana" } }
+    },
+    {
+      "id": "pg-detalle",
+      "name": "Detalle de evidencias",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [480, 100],
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "maxTries": 2,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT evidence_id, linea, equipo, capturado_en, tipo_foto, estado_resultado, resultado, confianza, revision_manual, calidad_impresion, coherencia, motivo, tokens FROM v_evidencias_completas WHERE capturado_en > now() - ($1 || ' days')::interval AND estado_ingesta <> 'duplicada' AND ($2 = '' OR linea = $2) AND ($3 = '' OR resultado = $3) ORDER BY capturado_en DESC LIMIT 30;",
+        "options": { "queryReplacement": "={{ [$json.dias_atras, $json.linea, $json.resultado] }}" }
+      },
+      "credentials": { "postgres": { "id": "sNxnP1WCjx6Xrzlf", "name": "Postgres-Sudamericana" } }
+    },
+    {
+      "id": "sticky-7b",
+      "name": "Nota-tool",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [0, -220],
+      "parameters": {
+        "content": "### 7b) Tool: Consultar evidencias\nSub-workflow usado como AI Tool por WF7 (Lupa). Inputs: modo ('resumen'|'detalle'), dias_atras, linea (opcional), resultado (opcional, solo detalle).\n\n'resumen' → totales por línea (OK/No OK/revisión/incoherencias/confianza/tokens).\n'detalle' → hasta 30 evidencias individuales con motivo.\n\nLee de v_evidencias_completas (db/vistas-bi.sql), excluye duplicadas.\n\n⚠️ Debe estar ACTIVO (toggle ON): un sub-workflow inactivo no puede ser invocado por el Tool Workflow node del agente (falla silenciosa, 0 ejecuciones).\n⚠️ queryReplacement en formato ARRAY ({{ [a, b] }}), no comma-string — con parámetros vacíos ('') el formato comma-string pierde el parámetro y Postgres tira 'no existe el parámetro $2'.",
+        "height": 260,
+        "width": 460,
+        "color": 4
+      }
+    }
+  ],
+  "connections": {
+    "Entrada de la tool": { "main": [[{ "node": "¿Modo resumen?", "type": "main", "index": 0 }]] },
+    "¿Modo resumen?": { "main": [[{ "node": "Resumen por línea", "type": "main", "index": 0 }], [{ "node": "Detalle de evidencias", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1", "errorWorkflow": "I59vNrbU4KKGkHXF" }
+}
