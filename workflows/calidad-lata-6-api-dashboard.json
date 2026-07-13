@@ -1,0 +1,163 @@
+{
+  "name": "Calidad de Lata — 6) API Dashboard",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "dashboard-calidad",
+        "responseMode": "responseNode",
+        "options": { "allowedOrigins": "https://dashboard.cluna.ar" }
+      },
+      "id": "wh",
+      "name": "GET dashboard-calidad",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-32, 0],
+      "webhookId": "20ca09c0-5566-413e-bfce-3205da617140",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT e.evidence_id, e.linea, e.equipo, e.capturado_en, e.estado AS estado_ingesta, r.tipo_foto, r.estado AS estado_resultado, r.resultado, r.confianza, r.revision_manual, r.calidad_impresion, r.coherencia, r.motivo, r.defectos, r.textos, r.hora_pantalla, r.tokens, r.revisado_por, CASE WHEN r.evaluado_en IS NOT NULL AND e.capturado_en IS NOT NULL THEN GREATEST(0, EXTRACT(EPOCH FROM (r.evaluado_en - e.capturado_en)))::int END AS latencia_segundos FROM evidencias e LEFT JOIN resultados r USING (evidence_id) WHERE e.capturado_en > now() - interval '90 days' ORDER BY e.capturado_en DESC LIMIT 2000;",
+        "options": {}
+      },
+      "id": "pg-data",
+      "name": "Evidencias 90 días",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [224, 0],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "alwaysOutputData": true,
+      "credentials": { "postgres": { "id": "sNxnP1WCjx6Xrzlf", "name": "Postgres-Sudamericana" } }
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              { "name": "Access-Control-Allow-Origin", "value": "https://dashboard.cluna.ar" },
+              { "name": "Cache-Control", "value": "no-store" }
+            ]
+          }
+        }
+      },
+      "id": "resp",
+      "name": "Responder JSON",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [448, 0]
+    },
+    {
+      "parameters": {
+        "path": "dashboard-calidad-imagen",
+        "responseMode": "responseNode",
+        "options": { "allowedOrigins": "https://dashboard.cluna.ar" }
+      },
+      "id": "wh-img",
+      "name": "GET imagen-evidencia",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-32, 560],
+      "webhookId": "825e8b06-0661-4942-91b2-e0c6cbc2c1cd",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT evidence_id, imagen_ref FROM evidencias WHERE evidence_id = $1 LIMIT 1;",
+        "options": { "queryReplacement": "={{ $json.query.id }}" }
+      },
+      "id": "pg-img",
+      "name": "Buscar imagen_ref",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [224, 560],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "alwaysOutputData": true,
+      "credentials": { "postgres": { "id": "sNxnP1WCjx6Xrzlf", "name": "Postgres-Sudamericana" } }
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "download",
+        "bucketName": "calidad-lata",
+        "fileKey": "={{ $json.imagen_ref }}"
+      },
+      "id": "s3-img",
+      "name": "Descargar imagen",
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "position": [448, 560],
+      "onError": "continueErrorOutput",
+      "credentials": { "s3": { "id": "vc5jYv8vGDoXPWuc", "name": "S3 account" } }
+    },
+    {
+      "parameters": {
+        "respondWith": "binary",
+        "options": {
+          "responseHeaders": {
+            "entries": [{ "name": "Cache-Control", "value": "public, max-age=86400" }]
+          }
+        }
+      },
+      "id": "resp-img",
+      "name": "Responder imagen",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [672, 528]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "Imagen no encontrada",
+        "options": { "responseCode": 404 }
+      },
+      "id": "resp-404",
+      "name": "Imagen no encontrada",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [672, 704]
+    },
+    {
+      "parameters": {
+        "content": "### 6) API para el dashboard operativo\nDos endpoints (CORS restringido a https://dashboard.cluna.ar):\n\n**GET /webhook/dashboard-calidad** → evidencias de los últimos 90 días (join evidencias+resultados) en JSON, incluye latencia_segundos (evaluado_en - capturado_en).\n\n**GET /webhook/dashboard-calidad-imagen?id=<evidence_id>** → foto original desde MinIO (404 si no existe).\n\nLos consume la SPA en https://dashboard.cluna.ar (apps/dashboard).",
+        "height": 900,
+        "width": 776,
+        "color": 4
+      },
+      "id": "sticky-6",
+      "name": "Nota-api",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-112, -176]
+    }
+  ],
+  "connections": {
+    "GET dashboard-calidad": {
+      "main": [[{ "node": "Evidencias 90 días", "type": "main", "index": 0 }]]
+    },
+    "Evidencias 90 días": {
+      "main": [[{ "node": "Responder JSON", "type": "main", "index": 0 }]]
+    },
+    "GET imagen-evidencia": {
+      "main": [[{ "node": "Buscar imagen_ref", "type": "main", "index": 0 }]]
+    },
+    "Buscar imagen_ref": {
+      "main": [[{ "node": "Descargar imagen", "type": "main", "index": 0 }]]
+    },
+    "Descargar imagen": {
+      "main": [
+        [{ "node": "Responder imagen", "type": "main", "index": 0 }],
+        [{ "node": "Imagen no encontrada", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "I59vNrbU4KKGkHXF",
+    "callerPolicy": "workflowsFromSameOwner"
+  }
+}
