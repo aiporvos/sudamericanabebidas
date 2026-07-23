@@ -100,6 +100,16 @@ solución preparada para PET, Trazabilidad, Arranques de Línea, Cambios de Prod
     devuelven el **motivo** registrado, y el chat **mantiene contexto** dentro de una misma
     sesión (preguntas de seguimiento sin repetir el contexto).
 
+> Criterio 25: entregable adicional para el demo y la suite de pruebas — ejecutar casos de
+> prueba reproducibles sin depender del teléfono.
+
+25. Un usuario puede **ejecutar casos de prueba desde el dashboard** (pestaña «Casos de
+    prueba»): selecciona una carpeta local cuyas **subcarpetas se envían como mensajes de
+    operarios distintos** (tanda por tanda, con pausa configurable) al **mismo pipeline
+    productivo** (dedup por hash, visión IA, coherencia, alertas), viendo el resultado real
+    de cada foto en pantalla. Las evidencias simuladas quedan marcadas
+    (`origen.via = 'simulador'`) para poder filtrarlas o borrarlas sin tocar datos reales.
+
 ## Alcance del MVP
 - Proceso **Calidad de Lata** únicamente.
 - Captura → interpretación IA → clasificación OK/No OK → fallback a revisión manual → persistencia → alerta.

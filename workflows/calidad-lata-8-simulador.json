@@ -1,0 +1,355 @@
+{
+  "name": "Calidad de Lata — 8) Simulador de ingesta (Dashboard → Cola)",
+  "nodes": [
+    {
+      "id": "sim-wh",
+      "name": "Recibir simulación",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "simulador-calidad",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "https://dashboard.cluna.ar"
+        }
+      },
+      "webhookId": "e7f94b24-a761-432f-96b1-1a9b32e7a891",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "sim-cfg",
+      "name": "Leer config",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [224, 0],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT clave, valor FROM config;",
+        "options": {}
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "credentials": {
+        "postgres": { "id": "sNxnP1WCjx6Xrzlf", "name": "Postgres-Sudamericana" }
+      }
+    },
+    {
+      "id": "sim-val",
+      "name": "Validar y preparar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [448, 0],
+      "parameters": {
+        "jsCode": "const body = $('Recibir simulación').first().json.body || {};\nconst cfg = $input.all().map(i => i.json);\nconst tokenCfg = (cfg.find(x => x && x.clave === 'simulador_token') || {}).valor || null;\nconst auth_ok = !!tokenCfg && String(body.token || '') === String(tokenCfg);\nconst b64 = String(body.imagen_b64 || '').replace(/^data:[^;]+;base64,/, '');\nconst valido = b64.length > 100;\nif (!auth_ok || !valido) return [{ json: { auth_ok, valido } }];\nconst fileName = body.filename || 'foto.jpg';\nconst carpeta = String(body.carpeta || 'sin-carpeta');\nconst operario = String(body.operario || 'operario-sim');\nconst chatId = String(body.chat_id || '-1003908341093');\nconst messageId = 'sim' + Date.now() + Math.floor(Math.random() * 1000);\nconst proceso = 'calidad-lata';\nconst evidenceId = proceso + ':' + chatId + ':' + messageId;\nconst imagenRef = proceso + '/' + chatId + '/' + messageId + '.jpg';\nreturn [{ json: { auth_ok, valido, evidence_id: evidenceId, proceso, linea_fallback: carpeta, equipo: '', capturado_en: new Date().toISOString(), imagen_ref: imagenRef, origen: { chat_id: chatId, chat_title: carpeta, from_id: operario, message_id: messageId, via: 'simulador' }, caption: '', has_photo: true }, binary: { data: { data: b64, mimeType: 'image/jpeg', fileName } } }];"
+      }
+    },
+    {
+      "id": "sim-auth",
+      "name": "¿Autorizado?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [672, 0],
+      "parameters": {
+        "conditions": {
+          "options": { "version": 2, "leftValue": "", "caseSensitive": true, "typeValidation": "loose" },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "a1",
+              "leftValue": "={{ $json.auth_ok === true && $json.valido === true }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "sim-rej",
+      "name": "Rechazar",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [896, 160],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, error: $json.auth_ok ? 'imagen faltante o invalida' : 'token invalido' }) }}",
+        "options": {
+          "responseCode": 401,
+          "responseHeaders": {
+            "entries": [
+              { "name": "Access-Control-Allow-Origin", "value": "https://dashboard.cluna.ar" }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "sim-hash",
+      "name": "Hash imagen",
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 2,
+      "position": [896, -96],
+      "parameters": {
+        "binaryData": true,
+        "dataPropertyName": "imagen_hash"
+      }
+    },
+    {
+      "id": "sim-rebin",
+      "name": "Reasignar binario",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, -96],
+      "parameters": {
+        "jsCode": "const item = $input.first();\nreturn [{ json: item.json, binary: $('Validar y preparar').first().binary }];"
+      }
+    },
+    {
+      "id": "sim-s3",
+      "name": "Guardar imagen original",
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "position": [1344, -96],
+      "parameters": {
+        "operation": "upload",
+        "bucketName": "calidad-lata",
+        "fileName": "={{ $('Validar y preparar').first().json.imagen_ref }}",
+        "additionalFields": {}
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "credentials": {
+        "s3": { "id": "vc5jYv8vGDoXPWuc", "name": "S3 account" }
+      }
+    },
+    {
+      "id": "sim-linea",
+      "name": "Buscar línea",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [1568, -96],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT linea, equipo, proceso FROM lineas_grupos WHERE chat_id = '{{ $('Validar y preparar').first().json.origen.chat_id }}' LIMIT 1;",
+        "options": {}
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": { "id": "sNxnP1WCjx6Xrzlf", "name": "Postgres-Sudamericana" }
+      }
+    },
+    {
+      "id": "sim-dup",
+      "name": "¿Duplicada por hash?",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [1792, -96],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT evidence_id AS dup_evidence_id FROM evidencias WHERE imagen_hash = '{{ $('Hash imagen').first().json.imagen_hash }}' AND capturado_en > now() - (interval '1 hour' * COALESCE((SELECT valor::int FROM config WHERE clave='dedup_ventana_horas'), 24)) LIMIT 1;",
+        "options": {}
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": { "id": "sNxnP1WCjx6Xrzlf", "name": "Postgres-Sudamericana" }
+      }
+    },
+    {
+      "id": "sim-prep",
+      "name": "Preparar registro",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2016, -96],
+      "parameters": {
+        "jsCode": "const n = $('Validar y preparar').first().json;\nconst hash = $('Hash imagen').first().json.imagen_hash || null;\nconst lineaRows = $('Buscar línea').all().map(i => i.json).filter(j => j && j.linea);\nconst linea = lineaRows.length ? lineaRows[0].linea : n.linea_fallback;\nconst equipo = lineaRows.length ? (lineaRows[0].equipo || '') : '';\nconst proceso = lineaRows.length ? (lineaRows[0].proceso || n.proceso) : n.proceso;\nconst dupRows = $input.all().map(i => i.json).filter(j => j && j.dup_evidence_id);\nconst estado = dupRows.length ? 'duplicada' : 'recibido';\nconst duplicada_de = dupRows.length ? dupRows[0].dup_evidence_id : null;\nreturn [{ json: { ...n, linea, equipo, proceso, imagen_hash: hash, estado, duplicada_de } }];"
+      }
+    },
+    {
+      "id": "sim-ins",
+      "name": "Registrar evidencia",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [2240, -96],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=INSERT INTO evidencias (evidence_id, proceso, linea, equipo, capturado_en, imagen_ref, origen, estado, imagen_hash) VALUES ('{{ $json.evidence_id }}', '{{ $json.proceso }}', '{{ ($json.linea || '').replace(/'/g, \"''\") }}', '{{ ($json.equipo || '').replace(/'/g, \"''\") }}', '{{ $json.capturado_en }}'::timestamptz, '{{ $json.imagen_ref }}', '{{ JSON.stringify($json.origen).replace(/'/g, \"''\") }}'::jsonb, '{{ $json.estado }}', '{{ $json.imagen_hash }}');",
+        "options": {}
+      },
+      "credentials": {
+        "postgres": { "id": "sNxnP1WCjx6Xrzlf", "name": "Postgres-Sudamericana" }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "sim-enc",
+      "name": "¿Encolar?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [2464, -160],
+      "parameters": {
+        "conditions": {
+          "options": { "version": 2, "leftValue": "", "caseSensitive": true, "typeValidation": "loose" },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "q1",
+              "leftValue": "={{ $('Preparar registro').first().json.estado }}",
+              "rightValue": "recibido",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "sim-rmq",
+      "name": "Publicar a cola",
+      "type": "n8n-nodes-base.rabbitmq",
+      "typeVersion": 1.1,
+      "position": [2688, -256],
+      "parameters": {
+        "queue": "calidad.lata.procesar",
+        "sendInputData": false,
+        "message": "={{ JSON.stringify({ evidence_id: $('Preparar registro').first().json.evidence_id, proceso: $('Preparar registro').first().json.proceso, linea: $('Preparar registro').first().json.linea, equipo: $('Preparar registro').first().json.equipo, capturado_en: $('Preparar registro').first().json.capturado_en, imagen_ref: $('Preparar registro').first().json.imagen_ref, origen: $('Preparar registro').first().json.origen }) }}",
+        "options": {
+          "durable": true
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "credentials": {
+        "rabbitmq": { "id": "rnK8gxwAjMcIrFus", "name": "RabbitMQ account" }
+      }
+    },
+    {
+      "id": "sim-redis",
+      "name": "Contador recibidas (métrica)",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [2912, -256],
+      "parameters": {
+        "operation": "incr",
+        "key": "={{ 'metrics:recibidas:' + $('Preparar registro').first().json.linea }}"
+      },
+      "credentials": {
+        "redis": { "id": "5Ko3BtwQef2XmdcA", "name": "Redis account 2" }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "sim-ok",
+      "name": "Responder OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [3136, -256],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, evidence_id: $('Preparar registro').first().json.evidence_id, estado: 'recibido', linea: $('Preparar registro').first().json.linea }) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              { "name": "Access-Control-Allow-Origin", "value": "https://dashboard.cluna.ar" }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "sim-dupresp",
+      "name": "Responder duplicada",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [2688, 32],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, evidence_id: $('Preparar registro').first().json.evidence_id, estado: 'duplicada', duplicada_de: $('Preparar registro').first().json.duplicada_de }) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              { "name": "Access-Control-Allow-Origin", "value": "https://dashboard.cluna.ar" }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "sim-sticky",
+      "name": "Nota-simulador",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-112, -400],
+      "parameters": {
+        "content": "### 8) Simulador de ingesta (Casos de prueba del dashboard)\nRecibe una foto en base64 desde la pestaña «Casos de prueba» del dashboard y la mete al pipeline por el MISMO camino que WF1 (hash SHA-256 → dedup → MinIO → Postgres → RabbitMQ). De ahí en adelante todo corre real: WF2 visión IA, coherencia, alertas, dashboard.\n\n**¿Por qué no por Telegram?** Los bots NUNCA reciben sus propios mensajes (ni de otros bots) — enviar por el bot no dispararía WF1.\n\n**Auth**: token en `config.simulador_token` (body.token). CORS restringido a dashboard.cluna.ar.\n\n**Marca**: `origen.via = 'simulador'` en evidencias (jsonb) — filtrable/borrable sin tocar datos reales de Telegram.\n\nBody esperado: { token, imagen_b64, filename, carpeta, operario, chat_id? }",
+        "height": 360,
+        "width": 720,
+        "color": 6
+      }
+    }
+  ],
+  "connections": {
+    "Recibir simulación": {
+      "main": [[{ "node": "Leer config", "type": "main", "index": 0 }]]
+    },
+    "Leer config": {
+      "main": [[{ "node": "Validar y preparar", "type": "main", "index": 0 }]]
+    },
+    "Validar y preparar": {
+      "main": [[{ "node": "¿Autorizado?", "type": "main", "index": 0 }]]
+    },
+    "¿Autorizado?": {
+      "main": [
+        [{ "node": "Hash imagen", "type": "main", "index": 0 }],
+        [{ "node": "Rechazar", "type": "main", "index": 0 }]
+      ]
+    },
+    "Hash imagen": {
+      "main": [[{ "node": "Reasignar binario", "type": "main", "index": 0 }]]
+    },
+    "Reasignar binario": {
+      "main": [[{ "node": "Guardar imagen original", "type": "main", "index": 0 }]]
+    },
+    "Guardar imagen original": {
+      "main": [[{ "node": "Buscar línea", "type": "main", "index": 0 }]]
+    },
+    "Buscar línea": {
+      "main": [[{ "node": "¿Duplicada por hash?", "type": "main", "index": 0 }]]
+    },
+    "¿Duplicada por hash?": {
+      "main": [[{ "node": "Preparar registro", "type": "main", "index": 0 }]]
+    },
+    "Preparar registro": {
+      "main": [[{ "node": "Registrar evidencia", "type": "main", "index": 0 }]]
+    },
+    "Registrar evidencia": {
+      "main": [
+        [{ "node": "¿Encolar?", "type": "main", "index": 0 }],
+        [{ "node": "Responder duplicada", "type": "main", "index": 0 }]
+      ]
+    },
+    "¿Encolar?": {
+      "main": [
+        [{ "node": "Publicar a cola", "type": "main", "index": 0 }],
+        [{ "node": "Responder duplicada", "type": "main", "index": 0 }]
+      ]
+    },
+    "Publicar a cola": {
+      "main": [[{ "node": "Contador recibidas (métrica)", "type": "main", "index": 0 }]]
+    },
+    "Contador recibidas (métrica)": {
+      "main": [[{ "node": "Responder OK", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "I59vNrbU4KKGkHXF",
+    "callerPolicy": "workflowsFromSameOwner"
+  }
+}

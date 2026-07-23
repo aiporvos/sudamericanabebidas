@@ -16,11 +16,34 @@ WhatsApp: no hay Groups API oficial de Meta).
 | 6 | Calidad de Lata — 6) API Dashboard | `cfcBsJ1PcnseFZfu` | API del dashboard: datos JSON (con `latencia_segundos`) + foto original desde MinIO |
 | 7 | Calidad de Lata — 7) Chat Asistente IA | `IpHaLdb29KIkMVrn` | Chat "Lupa": responde preguntas sobre evidencias/métricas con un AI Agent |
 | 7b | Calidad de Lata — 7b) Tool Consultar Evidencias | `1V5WzKjcmzsrJ9bO` | Sub-workflow-tool de WF7 (consulta Postgres, modo resumen/detalle) |
+| 8 | Calidad de Lata — 8) Simulador de ingesta (Dashboard → Cola) | `B5ppi2wx8T009eLW` | Casos de prueba: recibe fotos del dashboard y las mete al pipeline real |
 
 JSON exportado: `calidad-lata-1-ingesta.json`, `calidad-lata-2-procesamiento.json`,
 `calidad-lata-3-errores.json`, `calidad-lata-4-revision-manual.json`,
 `calidad-lata-5-reporte.json`, `calidad-lata-6-api-dashboard.json`,
-`calidad-lata-7-chat-asistente.json`, `calidad-lata-7b-tool-evidencias.json`.
+`calidad-lata-7-chat-asistente.json`, `calidad-lata-7b-tool-evidencias.json`,
+`calidad-lata-8-simulador.json`.
+
+### WF8 — simulador de ingesta (pestaña «Casos de prueba» del dashboard)
+
+- `POST /webhook/simulador-calidad` — body
+  `{ token, imagen_b64, filename, carpeta, operario, chat_id? }` →
+  `{ ok, evidence_id, estado: 'recibido'|'duplicada', ... }`.
+- **Por qué existe:** los bots de Telegram nunca reciben sus propios mensajes (ni los de
+  otros bots), así que no se puede simular el envío "por el bot" — WF1 no se dispararía.
+  WF8 entra al pipeline por el mismo camino que WF1 (hash SHA-256 → dedup por hash →
+  MinIO → INSERT en `evidencias` → RabbitMQ); desde ahí WF2 (visión IA, coherencia,
+  alertas) corre exactamente igual que en producción.
+- **Auth:** compara `body.token` contra `config.simulador_token` (cargarlo con
+  `INSERT INTO config (clave, valor) VALUES ('simulador_token', '<token>')`). Sin token
+  válido responde 401. CORS restringido a `https://dashboard.cluna.ar`.
+- **Trazabilidad:** las evidencias simuladas llevan `origen.via = 'simulador'` (jsonb) —
+  se filtran o borran sin tocar los datos reales de Telegram:
+  `DELETE FROM evidencias WHERE origen->>'via' = 'simulador';` (cascadea a `resultados`
+  si se borran ambos: `DELETE FROM resultados WHERE evidence_id IN (SELECT evidence_id FROM evidencias WHERE origen->>'via' = 'simulador');` primero).
+- La pestaña «Casos de prueba» del dashboard agrupa una carpeta local por subcarpetas
+  (cada subcarpeta = mensaje de un operario), envía foto por foto con pausa configurable
+  y muestra el resultado real de la IA al lado de cada imagen.
 
 ### WF7 — chat "Lupa" (https://dashboard.cluna.ar, burbuja flotante)
 
