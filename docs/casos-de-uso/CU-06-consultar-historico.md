@@ -1,7 +1,7 @@
 # CU-06 — Consultar histórico ante reclamo
 
 > Actor principal: **Analista de calidad** · Implementación actual: **Dashboard web**
-> (https://dashboard.cluna.ar — WF6 `cfcBsJ1PcnseFZfu` + SPA `apps/dashboard/`)
+> (https://sudamericana.opendraft.tech — WF6 `cfcBsJ1PcnseFZfu` + SPA `apps/dashboard/`)
 > · Criterios HU: `1, 9, 16, 22, 23`
 
 ## Contexto (minuta)
@@ -15,7 +15,7 @@ evidencia, determinar desde cuándo existe el problema."
 
 ## Flujo principal (sin SQL — criterio 22)
 1. Llega un reclamo (ej.: lote con impresión defectuosa).
-2. El analista abre **https://dashboard.cluna.ar** y filtra por **fecha, línea, tipo de
+2. El analista abre **https://sudamericana.opendraft.tech** y filtra por **fecha, línea, tipo de
    foto, resultado o estado**, o usa la **búsqueda libre** sobre motivo/textos/ID
    (los textos leídos están indexados → se busca `L:117`, un vencimiento, etc. — criterio 16).
 3. La tabla muestra el historial: qué se leyó, calidad, coherencia, motivo, quién revisó.

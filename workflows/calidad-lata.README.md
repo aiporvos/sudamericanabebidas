@@ -36,7 +36,7 @@ JSON exportado: `calidad-lata-1-ingesta.json`, `calidad-lata-2-procesamiento.jso
   alertas) corre exactamente igual que en producción.
 - **Auth:** compara `body.token` contra `config.simulador_token` (cargarlo con
   `INSERT INTO config (clave, valor) VALUES ('simulador_token', '<token>')`). Sin token
-  válido responde 401. CORS restringido a `https://dashboard.cluna.ar`.
+  válido responde 401. CORS restringido a `https://sudamericana.opendraft.tech`.
 - **Trazabilidad:** las evidencias simuladas llevan `origen.via = 'simulador'` (jsonb) —
   se filtran o borran sin tocar los datos reales de Telegram:
   `DELETE FROM evidencias WHERE origen->>'via' = 'simulador';` (cascadea a `resultados`
@@ -45,7 +45,7 @@ JSON exportado: `calidad-lata-1-ingesta.json`, `calidad-lata-2-procesamiento.jso
   (cada subcarpeta = mensaje de un operario), envía foto por foto con pausa configurable
   y muestra el resultado real de la IA al lado de cada imagen.
 
-### WF7 — chat "Lupa" (https://dashboard.cluna.ar, burbuja flotante)
+### WF7 — chat "Lupa" (https://sudamericana.opendraft.tech, burbuja flotante)
 
 - `POST /webhook/dashboard-calidad-chat` — body `{ session_id, mensaje }` → `{ respuesta }`.
 - **AI Agent** (modelo OpenRouter `openai/gpt-4o-mini`, no hay credencial nativa OpenAI en
@@ -53,7 +53,7 @@ JSON exportado: `calidad-lata-1-ingesta.json`, `calidad-lata-2-procesamiento.jso
   turnos) + **tool** `Consultar evidencias de Calidad` → sub-workflow **WF7b**, que
   consulta `v_evidencias_completas` en modo `resumen` (totales agregados por línea) o
   `detalle` (hasta 30 evidencias puntuales con motivo).
-- CORS restringido a `https://dashboard.cluna.ar`, igual que WF6.
+- CORS restringido a `https://sudamericana.opendraft.tech`, igual que WF6.
 - ⚠️ **WF7b debe estar ACTIVO** (toggle ON): un sub-workflow-tool inactivo no se puede
   invocar desde el AI Agent — falla en silencio (0 ejecuciones, el agente reporta "no hay
   datos" o "problema técnico" sin haber consultado nada).
@@ -65,14 +65,14 @@ JSON exportado: `calidad-lata-1-ingesta.json`, `calidad-lata-2-procesamiento.jso
   sin créditos — cambiar la credencial del nodo "OpenRouter Chat Model" a otra cuenta
   disponible, o cargar saldo en openrouter.ai/settings/credits.
 
-### WF6 — endpoints del dashboard (https://dashboard.cluna.ar)
+### WF6 — endpoints del dashboard (https://sudamericana.opendraft.tech)
 
 - `GET /webhook/dashboard-calidad` → evidencias de los últimos 90 días
   (`evidencias LEFT JOIN resultados`), incluye `latencia_segundos` =
   `evaluado_en − capturado_en` (criterio 23).
 - `GET /webhook/dashboard-calidad-imagen?id=<evidence_id>` → imagen original desde
   MinIO (`imagen_ref` → S3 download → binario; 404 si no existe) — criterio 22.
-- CORS restringido a `https://dashboard.cluna.ar` (webhook `allowedOrigins` + header en el
+- CORS restringido a `https://sudamericana.opendraft.tech` (webhook `allowedOrigins` + header en el
   Respond). La SPA vive en `apps/dashboard/` y se deploya desde el repo
   `aiporvos/sudamericanabebidas-dashboard` (Dokploy, Dockerfile nginx).
 
@@ -231,7 +231,7 @@ Abrí cada nodo y seleccioná la credencial correcta:
 | 19. Dedup entre grupos (misma imagen) | WF1: Hash imagen → ¿Duplicada en otro grupo? → ¿Encolar? |
 | 20. Producción horaria / comparativos | vistas `v_produccion_horaria`, `v_comparativo_lineas` |
 | 21. Parámetros y mapeo por datos | tablas `config` (WF2 "Leer config") y `lineas_grupos` (WF1 "Buscar línea") |
-| 22. Consulta sin SQL con imagen | WF6: "GET dashboard-calidad" + "GET imagen-evidencia" → dashboard.cluna.ar (modal de detalle) |
+| 22. Consulta sin SQL con imagen | WF6: "GET dashboard-calidad" + "GET imagen-evidencia" → sudamericana.opendraft.tech (modal de detalle) |
 | 23. Latencia medida (p95) | WF6 "Evidencias 90 días" (`latencia_segundos`) → KPI "Latencia p95" del dashboard |
 
 ## Observabilidad y robustez

@@ -84,7 +84,7 @@ solución preparada para PET, Trazabilidad, Arranques de Línea, Cambios de Prod
 > imagen, y medición de latencia (`docs/plan-cierre-mvp.md`).
 
 22. Un analista **consulta el histórico sin SQL** desde el **dashboard web**
-    (https://dashboard.cluna.ar): filtros por fecha/línea/tipo/resultado/estado y búsqueda
+    (https://sudamericana.opendraft.tech): filtros por fecha/línea/tipo/resultado/estado y búsqueda
     libre, y el **detalle de cada evidencia muestra la imagen original** (desde MinIO),
     motivo, coherencia, textos leídos y confianza.
 23. El sistema **mide la latencia** de punta a punta (foto en Telegram → resultado IA,

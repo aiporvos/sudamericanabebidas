@@ -92,7 +92,7 @@
 
 ## CP-10 — Consulta histórica ante reclamo (dashboard, sin SQL)
 **CU-06 · criterios 9, 16, 22** · Sin imagen (usa lo generado por CP-01..09)
-1. Abrir **https://dashboard.cluna.ar** y buscar en **Búsqueda libre** un texto leído en la
+1. Abrir **https://sudamericana.opendraft.tech** y buscar en **Búsqueda libre** un texto leído en la
    demo (ej.: `L:117`) o filtrar por línea/fecha/resultado.
 2. **Esperado:** aparecen las evidencias coincidentes con lectura, veredicto, motivo y
    confianza; los KPIs del período se recalculan según el filtro. Los `tokens` permiten
@@ -125,7 +125,7 @@ SELECT evidence_id, estado, duplicada_de IS NOT NULL AS es_dup FROM evidencias O
 
 ## CP-13 — Detalle de evidencia con foto y latencia (dashboard) 🖼️
 **CU-06 · criterios 1, 22, 23** · Sin imagen (usa lo generado por CP-01..09)
-1. En **https://dashboard.cluna.ar**, hacer **clic en una fila** de la tabla de evidencias.
+1. En **https://sudamericana.opendraft.tech**, hacer **clic en una fila** de la tabla de evidencias.
 2. **Esperado:** se abre el detalle con la **foto original** (servida desde MinIO vía
    `GET /webhook/dashboard-calidad-imagen?id=…`), resultado, confianza, estado,
    línea/equipo, tipo de foto, **latencia IA** de esa evidencia, tokens, motivo,
@@ -137,7 +137,7 @@ SELECT evidence_id, estado, duplicada_de IS NOT NULL AS es_dup FROM evidencias O
 
 ## CP-14 — Chat "Lupa": consulta agregada (modo resumen) 💬
 **CU-09 · criterio 24** · Sin imagen (usa lo generado por CP-01..09)
-1. En **https://dashboard.cluna.ar**, abrir la burbuja de chat (abajo a la derecha) y
+1. En **https://sudamericana.opendraft.tech**, abrir la burbuja de chat (abajo a la derecha) y
    preguntar: *"¿Cuántas evidencias hubo hoy?"*.
 2. **Esperado:** Lupa responde en **texto plano** (sin asteriscos ni markdown) con números
    reales — total, OK, No OK, revisión manual, incoherentes, confianza media y tokens —

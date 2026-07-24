@@ -94,7 +94,7 @@ la evidencia verificable de lo cubierto y lo que falta con responsable.
 ## 7. Habilitar una consulta histórica simple — ✅ CERRADO
 
 **Cubierto (evidencia):**
-- **`https://dashboard.cluna.ar`** (SPA React + nginx en Dokploy, deploy automático desde
+- **`https://sudamericana.opendraft.tech`** (SPA React + nginx en Dokploy, deploy automático desde
   `aiporvos/sudamericanabebidas-dashboard`).
 - Filtros: fecha desde/hasta, línea (multi), tipo de foto (multi), resultado, estado y
   búsqueda libre. KPIs y 4 gráficos.
@@ -143,4 +143,4 @@ la evidencia verificable de lo cubierto y lo que falta con responsable.
 > **Regla de cierre:** cada decisión necesita responsable, evidencia verificable y criterio de
 > aceptación cumplido. Las evidencias técnicas de este documento son verificables en el repo
 > (`aiporvos/sudamericanabebidas`), la instancia n8n (n8n.aiporvos.com) y el dashboard
-> (dashboard.cluna.ar).
+> (sudamericana.opendraft.tech).

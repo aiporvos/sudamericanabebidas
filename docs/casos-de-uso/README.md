@@ -9,7 +9,7 @@
 - **Supervisor / operador de calidad** — recibe alertas y resuelve la revisión manual.
 - **Analista de calidad** — consulta histórico ante reclamos y arma indicadores.
 - **Sistema** — n8n (WF1–WF7b) + OpenAI visión + MinIO/Postgres/RabbitMQ + dashboard web
-  (https://dashboard.cluna.ar) + chat "Lupa" (AI Agent sobre OpenRouter).
+  (https://sudamericana.opendraft.tech) + chat "Lupa" (AI Agent sobre OpenRouter).
 
 ## Índice
 
@@ -20,7 +20,7 @@
 | [CU-03](CU-03-validar-coherencia.md) | Validar coherencia impresión ↔ pantalla | Sistema | ✅ WF2 |
 | [CU-04](CU-04-revision-manual.md) | Resolver revisión manual (fallback) | Supervisor | ✅ WF4 |
 | [CU-05](CU-05-alertar-desvio.md) | Alertar desvío en tiempo real | Sistema | ✅ WF2/WF3 |
-| [CU-06](CU-06-consultar-historico.md) | Consultar histórico ante reclamo | Analista | ✅ WF6 + dashboard.cluna.ar |
+| [CU-06](CU-06-consultar-historico.md) | Consultar histórico ante reclamo | Analista | ✅ WF6 + sudamericana.opendraft.tech |
 | [CU-07](CU-07-reporte-planilla.md) | Generar reporte y planilla automática | Sistema | ✅ WF5 + vistas BI |
 | [CU-08](CU-08-dedup-entre-grupos.md) | Detectar misma foto en varios grupos | Sistema | ✅ WF1 v3 (hash) |
 | [CU-09](CU-09-chat-asistente.md) | Consultar evidencias y métricas por chat | Analista | ✅ WF7 + WF7b (Lupa) |

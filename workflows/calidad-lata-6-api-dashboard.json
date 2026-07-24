@@ -5,7 +5,7 @@
       "parameters": {
         "path": "dashboard-calidad",
         "responseMode": "responseNode",
-        "options": { "allowedOrigins": "https://dashboard.cluna.ar" }
+        "options": { "allowedOrigins": "https://sudamericana.opendraft.tech" }
       },
       "id": "wh",
       "name": "GET dashboard-calidad",
@@ -37,7 +37,7 @@
         "options": {
           "responseHeaders": {
             "entries": [
-              { "name": "Access-Control-Allow-Origin", "value": "https://dashboard.cluna.ar" },
+              { "name": "Access-Control-Allow-Origin", "value": "https://sudamericana.opendraft.tech" },
               { "name": "Cache-Control", "value": "no-store" }
             ]
           }
@@ -53,7 +53,7 @@
       "parameters": {
         "path": "dashboard-calidad-imagen",
         "responseMode": "responseNode",
-        "options": { "allowedOrigins": "https://dashboard.cluna.ar" }
+        "options": { "allowedOrigins": "https://sudamericana.opendraft.tech" }
       },
       "id": "wh-img",
       "name": "GET imagen-evidencia",
@@ -123,7 +123,7 @@
     },
     {
       "parameters": {
-        "content": "### 6) API para el dashboard operativo\nDos endpoints (CORS restringido a https://dashboard.cluna.ar):\n\n**GET /webhook/dashboard-calidad** → evidencias de los últimos 90 días (join evidencias+resultados) en JSON, incluye latencia_segundos (evaluado_en - capturado_en).\n\n**GET /webhook/dashboard-calidad-imagen?id=<evidence_id>** → foto original desde MinIO (404 si no existe).\n\nLos consume la SPA en https://dashboard.cluna.ar (apps/dashboard).",
+        "content": "### 6) API para el dashboard operativo\nDos endpoints (CORS restringido a https://sudamericana.opendraft.tech):\n\n**GET /webhook/dashboard-calidad** → evidencias de los últimos 90 días (join evidencias+resultados) en JSON, incluye latencia_segundos (evaluado_en - capturado_en).\n\n**GET /webhook/dashboard-calidad-imagen?id=<evidence_id>** → foto original desde MinIO (404 si no existe).\n\nLos consume la SPA en https://sudamericana.opendraft.tech (apps/dashboard).",
         "height": 900,
         "width": 776,
         "color": 4

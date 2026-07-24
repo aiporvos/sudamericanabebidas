@@ -12,7 +12,7 @@
         "path": "simulador-calidad",
         "responseMode": "responseNode",
         "options": {
-          "allowedOrigins": "https://dashboard.cluna.ar"
+          "allowedOrigins": "https://sudamericana.opendraft.tech"
         }
       },
       "webhookId": "e7f94b24-a761-432f-96b1-1a9b32e7a891",
@@ -80,7 +80,7 @@
           "responseCode": 401,
           "responseHeaders": {
             "entries": [
-              { "name": "Access-Control-Allow-Origin", "value": "https://dashboard.cluna.ar" }
+              { "name": "Access-Control-Allow-Origin", "value": "https://sudamericana.opendraft.tech" }
             ]
           }
         }
@@ -256,7 +256,7 @@
         "options": {
           "responseHeaders": {
             "entries": [
-              { "name": "Access-Control-Allow-Origin", "value": "https://dashboard.cluna.ar" }
+              { "name": "Access-Control-Allow-Origin", "value": "https://sudamericana.opendraft.tech" }
             ]
           }
         }
@@ -274,7 +274,7 @@
         "options": {
           "responseHeaders": {
             "entries": [
-              { "name": "Access-Control-Allow-Origin", "value": "https://dashboard.cluna.ar" }
+              { "name": "Access-Control-Allow-Origin", "value": "https://sudamericana.opendraft.tech" }
             ]
           }
         }
@@ -287,7 +287,7 @@
       "typeVersion": 1,
       "position": [-112, -400],
       "parameters": {
-        "content": "### 8) Simulador de ingesta (Casos de prueba del dashboard)\nRecibe una foto en base64 desde la pestaña «Casos de prueba» del dashboard y la mete al pipeline por el MISMO camino que WF1 (hash SHA-256 → dedup → MinIO → Postgres → RabbitMQ). De ahí en adelante todo corre real: WF2 visión IA, coherencia, alertas, dashboard.\n\n**¿Por qué no por Telegram?** Los bots NUNCA reciben sus propios mensajes (ni de otros bots) — enviar por el bot no dispararía WF1.\n\n**Auth**: token en `config.simulador_token` (body.token). CORS restringido a dashboard.cluna.ar.\n\n**Marca**: `origen.via = 'simulador'` en evidencias (jsonb) — filtrable/borrable sin tocar datos reales de Telegram.\n\nBody esperado: { token, imagen_b64, filename, carpeta, operario, chat_id? }",
+        "content": "### 8) Simulador de ingesta (Casos de prueba del dashboard)\nRecibe una foto en base64 desde la pestaña «Casos de prueba» del dashboard y la mete al pipeline por el MISMO camino que WF1 (hash SHA-256 → dedup → MinIO → Postgres → RabbitMQ). De ahí en adelante todo corre real: WF2 visión IA, coherencia, alertas, dashboard.\n\n**¿Por qué no por Telegram?** Los bots NUNCA reciben sus propios mensajes (ni de otros bots) — enviar por el bot no dispararía WF1.\n\n**Auth**: token en `config.simulador_token` (body.token). CORS restringido a sudamericana.opendraft.tech.\n\n**Marca**: `origen.via = 'simulador'` en evidencias (jsonb) — filtrable/borrable sin tocar datos reales de Telegram.\n\nBody esperado: { token, imagen_b64, filename, carpeta, operario, chat_id? }",
         "height": 360,
         "width": 720,
         "color": 6

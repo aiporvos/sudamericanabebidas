@@ -4,9 +4,9 @@
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="title" value="WF6 — API Dashboard (cfcBsJ1PcnseFZfu) · dos endpoints con CORS a dashboard.cluna.ar · 13/07/2026" style="text;html=1;fontSize=16;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="40" y="20" width="1100" height="30" as="geometry"/></mxCell>
+        <mxCell id="title" value="WF6 — API Dashboard (cfcBsJ1PcnseFZfu) · dos endpoints con CORS a sudamericana.opendraft.tech · 13/07/2026" style="text;html=1;fontSize=16;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="40" y="20" width="1100" height="30" as="geometry"/></mxCell>
 
-        <mxCell id="spa" value="📊 Dashboard (SPA React)&#10;https://dashboard.cluna.ar&#10;KPIs · 4 gráficos · filtros · tabla&#10;· modal de detalle con foto" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1"><mxGeometry x="40" y="280" width="240" height="110" as="geometry"/></mxCell>
+        <mxCell id="spa" value="📊 Dashboard (SPA React)&#10;https://sudamericana.opendraft.tech&#10;KPIs · 4 gráficos · filtros · tabla&#10;· modal de detalle con foto" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1"><mxGeometry x="40" y="280" width="240" height="110" as="geometry"/></mxCell>
 
         <mxCell id="lane1" value="Endpoint 1 — datos (fetch JSON)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#666666;dashed=1;verticalAlign=top;fontStyle=1" vertex="1" parent="1"><mxGeometry x="360" y="100" width="1000" height="180" as="geometry"/></mxCell>
         <mxCell id="wh1" value="🌐 Webhook&#10;GET /webhook/dashboard-calidad" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1"><mxGeometry x="390" y="150" width="230" height="70" as="geometry"/></mxCell>
@@ -20,7 +20,7 @@
         <mxCell id="resp2" value="↩️ Responder imagen&#10;binario image/jpeg&#10;Cache-Control 24 h" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1"><mxGeometry x="1030" y="540" width="200" height="80" as="geometry"/></mxCell>
         <mxCell id="resp404" value="⛔ Imagen no encontrada&#10;HTTP 404&#10;(id inexistente o sin imagen_ref)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1"><mxGeometry x="700" y="540" width="230" height="80" as="geometry"/></mxCell>
 
-        <mxCell id="nota" value="🔒 CORS: ambos webhooks con allowedOrigins = https://dashboard.cluna.ar. La latencia (criterio 23) se muestra por evidencia y como KPI p95. La foto (criterios 1 y 22) sale de MinIO — evidencia auditable sin acceso a la infraestructura." style="text;html=1;fontSize=11;fontColor=#666666;" vertex="1" parent="1"><mxGeometry x="360" y="700" width="1000" height="40" as="geometry"/></mxCell>
+        <mxCell id="nota" value="🔒 CORS: ambos webhooks con allowedOrigins = https://sudamericana.opendraft.tech. La latencia (criterio 23) se muestra por evidencia y como KPI p95. La foto (criterios 1 y 22) sale de MinIO — evidencia auditable sin acceso a la infraestructura." style="text;html=1;fontSize=11;fontColor=#666666;" vertex="1" parent="1"><mxGeometry x="360" y="700" width="1000" height="40" as="geometry"/></mxCell>
 
         <mxCell id="e1" value="fetch datos" style="endArrow=block;html=1;" edge="1" parent="1" source="spa" target="wh1"><mxGeometry relative="1" as="geometry"/></mxCell>
         <mxCell id="e2" style="endArrow=block;html=1;" edge="1" parent="1" source="wh1" target="pg1"><mxGeometry relative="1" as="geometry"/></mxCell>
